@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AviControl – Poultry Management System
 
-## Getting Started
+Sistema de gestão avícola (controle de galinhas, ninhadas, ração e financeiro).
 
-First, run the development server:
+## Stack
+
+- Next.js 14 (App Router), TypeScript, TailwindCSS
+- Prisma + PostgreSQL
+- NextAuth (credentials + bcrypt)
+- TanStack React Query, Zod
+
+## Setup
+
+1. Clone e instale dependências:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+yarn
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Configure o ambiente (copie `.env.example` para `.env`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Preencha `DATABASE_URL` (PostgreSQL) e `NEXTAUTH_SECRET` (ex: `openssl rand -base64 32`).
 
-## Learn More
+3. Gere o Prisma Client e rode as migrações:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+yarn prisma generate
+yarn prisma migrate dev --name init
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Inicie o servidor:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+yarn dev
+```
 
-## Deploy on Vercel
+Acesse `http://localhost:3000`. Cadastre um usuário em **Cadastrar** e faça login.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `yarn dev` – desenvolvimento
+- `yarn build` – build de produção
+- `yarn start` – servidor de produção
+- `yarn test` – testes (Vitest)
+- `yarn lint` – ESLint
+
+## Estrutura (Clean Architecture)
+
+- `src/modules/chicken` – galinhas (idade, postura, status)
+- `src/modules/brood` – ciclos de ninhada
+- `src/modules/feed` – estoque de ração e previsão de reabastecimento
+- `src/modules/finance` – despesas, receita e lucro mensal
+- `src/shared` – constantes e i18n (PT-BR)
+- `src/lib` – Prisma, NextAuth, React Query
+
+Código em inglês; interface em português (Brasil).

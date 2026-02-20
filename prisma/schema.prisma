@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  chickens     Chicken[]
+}
+
+model Chicken {
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  breed      String
+  birthDate  DateTime
+  status     ChickenStatus
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  broodCycles BroodCycle[]
+
+  @@index([userId])
+}
+
+enum ChickenStatus {
+  chick
+  pullet
+  laying
+  brooding
+  recovering
+  retired
+  sold
+  deceased
+}
+
+model BroodCycle {
+  id                      String   @id @default(cuid())
+  chickenId                String
+  chicken                  Chicken  @relation(fields: [chickenId], references: [id], onDelete: Cascade)
+  startDate                DateTime
+  eggCount                 Int
+  expectedHatchDate        DateTime
+  expectedReturnToLayDate  DateTime
+  actualHatchedCount       Int?
+  status                   String
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([chickenId])
+}
+
+model FeedInventory {
+  id                    String   @id @default(cuid())
+  userId                String
+  name                  String
+  feedType              String
+  weightKg              Float
+  price                 Float?
+  consumptionPerBirdGrams Float
+  purchaseDate          DateTime
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Float
+  description String?
+  category    String?
+  date        DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, date])
+}
+
+model Revenue {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Float
+  description String?
+  source      String?
+  date        DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, date])
+}

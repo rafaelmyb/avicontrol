@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const bodySchema = z.object({
   email: z.string().email(),
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Invalid body", details: parsed.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const { email, password, name } = parsed.data;
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     if (existing) {
       return NextResponse.json(
         { error: "Email already registered" },
-        { status: 409 }
+        { status: 409 },
       );
     }
     const passwordHash = await bcrypt.hash(password, 10);

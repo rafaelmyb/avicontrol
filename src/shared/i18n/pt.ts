@@ -20,9 +20,13 @@ export const pt = {
   appName: "AviControl",
   dashboard: "Painel",
   chickens: "Galinhas",
-  brood: "Ninhada",
+  brood: "Choco",
   feed: "Ração",
   finance: "Financeiro",
+  settings: "Configurações",
+  eggPricePerUnit: "Valor do ovo (R$/unidade)",
+  eggPricePerUnitHelp:
+    "Usado para calcular a receita estimada com ovos no painel e no financeiro.",
 
   // Chicken
   addChicken: "Adicionar galinha",
@@ -45,20 +49,23 @@ export const pt = {
   retired: "Aposentada",
   sold: "Vendida",
   deceased: "Óbito",
+  purchased: "Comprado",
+  hatched: "Nascido no galinheiro",
+  sourceLabel: "Origem",
   save: "Salvar",
   cancel: "Cancelar",
   delete: "Excluir",
   edit: "Editar",
 
   // Brood
-  addBroodCycle: "Adicionar ciclo de ninhada",
-  broodCycle: "Ciclo de ninhada",
+  addBroodCycle: "Adicionar ciclo de choco",
+  broodCycle: "Ciclo de choco",
   startDate: "Data de início",
   eggCount: "Quantidade de ovos",
   expectedHatchDate: "Previsão de eclosão",
   expectedReturnToLayDate: "Previsão retorno à postura",
   actualHatchedCount: "Eclodidos",
-  upcomingBroodEvents: "Próximos eventos de ninhada",
+  upcomingBroodEvents: "Próximos eventos de choco",
 
   // Feed
   feedInventory: "Estoque de ração",
@@ -71,6 +78,7 @@ export const pt = {
   purchaseDate: "Data da compra",
   estimatedRestockDate: "Previsão de reabastecimento",
   feedRestockAlert: "Alerta de ração",
+  feedNoStock: "Sem estoque",
   lowFeedWarning: "Ração acabando em breve",
 
   // Finance
@@ -84,9 +92,13 @@ export const pt = {
   source: "Origem",
   date: "Data",
   monthlyProfit: "Lucro mensal",
+  monthlyExpenses: "Despesas (mês)",
+  monthlyRevenue: "Receita (mês)",
   annualProjection: "Projeção anual",
   profit: "Lucro",
   loss: "Prejuízo",
+  estimatedEggRevenue: "Receita estimada (ovos)",
+  totalRevenueWithEggs: "Total receita (registrada + ovos)",
 
   // Dashboard
   estimatedMonthlyEggs: "Ovos estimados (mês)",

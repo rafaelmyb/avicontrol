@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { BroodCycleEntity, CreateBroodCycleInput } from "../domain/entities";
-import type { IBroodCycleRepository } from "../domain/repository";
+import type { IBroodCycleRepository, BroodListOptions } from "../domain/repository";
 
 function toEntity(row: {
   id: string;
@@ -58,13 +58,29 @@ export class PrismaBroodCycleRepository implements IBroodCycleRepository {
     return rows.map(toEntity);
   }
 
-  async findByUserId(userId: string): Promise<BroodCycleEntity[]> {
+  async findByUserId(userId: string, options?: BroodListOptions): Promise<BroodCycleEntity[]> {
+    const orderByField = options?.orderBy ?? "expectedHatchDate";
+    const orderDirection = options?.orderDirection ?? "asc";
     const rows = await prisma.broodCycle.findMany({
       where: { chicken: { userId } },
-      include: { chicken: true },
-      orderBy: { expectedHatchDate: "asc" },
+      orderBy: { [orderByField]: orderDirection },
+      skip: options?.skip,
+      take: options?.take,
     });
     return rows.map((r) => toEntity(r));
+  }
+
+  async countByUserId(userId: string): Promise<number> {
+    return prisma.broodCycle.count({
+      where: { chicken: { userId } },
+    });
+  }
+
+  async findByIdAndUserId(id: string, userId: string): Promise<BroodCycleEntity | null> {
+    const row = await prisma.broodCycle.findFirst({
+      where: { id, chicken: { userId } },
+    });
+    return row ? toEntity(row) : null;
   }
 
   async update(
@@ -79,5 +95,12 @@ export class PrismaBroodCycleRepository implements IBroodCycleRepository {
       },
     });
     return toEntity(row);
+  }
+
+  async delete(id: string, userId: string): Promise<boolean> {
+    const result = await prisma.broodCycle.deleteMany({
+      where: { id, chicken: { userId } },
+    });
+    return result.count > 0;
   }
 }

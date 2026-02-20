@@ -5,6 +5,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { pt } from "@/shared/i18n/pt";
 import { ChickenForm } from "@/modules/chicken/presentation/chicken-form";
+import { LoadingSpinner } from "@/components/loading-spinner";
+import { DeleteButton } from "@/components/action-icon-button";
+import { FormPageHeader } from "@/components/form-page-header";
 
 const statusOptions = [
   { value: "chick", label: pt.chick },
@@ -23,7 +26,11 @@ export default function ChickenDetailPage() {
   const queryClient = useQueryClient();
   const id = params.id as string;
 
-  const { data: chicken, isLoading, error } = useQuery({
+  const {
+    data: chicken,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["chickens", id],
     queryFn: async () => {
       const res = await fetch(`/api/chickens/${id}`);
@@ -39,6 +46,8 @@ export default function ChickenDetailPage() {
       breed: string;
       birthDate: string;
       status: string;
+      source: string;
+      purchasePrice?: number | null;
     }) => {
       const res = await fetch(`/api/chickens/${id}`, {
         method: "PATCH",
@@ -73,7 +82,7 @@ export default function ChickenDetailPage() {
   if (isLoading || !chicken) {
     return (
       <div className="p-6">
-        <p className="text-gray-500">{pt.loading}</p>
+        <LoadingSpinner />
       </div>
     );
   }
@@ -81,7 +90,10 @@ export default function ChickenDetailPage() {
     return (
       <div className="p-6">
         <p className="text-red-600">{pt.error}</p>
-        <Link href="/chickens" className="text-gray-900 hover:underline mt-2 inline-block">
+        <Link
+          href="/chickens"
+          className="text-gray-900 hover:underline mt-2 inline-block"
+        >
           Voltar
         </Link>
       </div>
@@ -89,22 +101,20 @@ export default function ChickenDetailPage() {
   }
 
   return (
-    <div className="p-6 max-w-lg">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">{chicken.name}</h1>
-        <Link
-          href="/chickens"
-          className="text-sm text-gray-600 hover:text-gray-900"
-        >
-          ← {pt.chickens}
-        </Link>
-      </div>
+    <div className="p-6 max-w-lg mx-auto">
+      <FormPageHeader
+        title={chicken.name}
+        backHref="/chickens"
+        backLabel={pt.chickens}
+      />
       <ChickenForm
         initialValues={{
           name: chicken.name,
           breed: chicken.breed,
           birthDate: chicken.birthDate.slice(0, 10),
           status: chicken.status,
+          source: chicken.source,
+          purchasePrice: chicken.purchasePrice ?? null,
         }}
         statusOptions={statusOptions}
         onSubmit={(values) =>
@@ -113,6 +123,8 @@ export default function ChickenDetailPage() {
             breed: values.breed,
             birthDate: values.birthDate,
             status: values.status,
+            source: values.source,
+            purchasePrice: values.purchasePrice ?? null,
           })
         }
         loading={update.isPending}
@@ -126,16 +138,13 @@ export default function ChickenDetailPage() {
           {pt.layStartDate}:{" "}
           {new Date(chicken.layStartDate).toLocaleDateString("pt-BR")}
         </p>
-        <button
-          type="button"
+        <DeleteButton
           onClick={() => {
-            if (window.confirm("Excluir esta galinha?")) deleteMutation.mutate();
+            if (window.confirm("Excluir esta galinha?"))
+              deleteMutation.mutate();
           }}
           disabled={deleteMutation.isPending}
-          className="text-sm text-red-600 hover:underline disabled:opacity-50"
-        >
-          {pt.delete}
-        </button>
+        />
       </div>
     </div>
   );

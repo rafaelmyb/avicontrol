@@ -1,4 +1,4 @@
-import type { IFeedInventoryRepository } from "../domain/repository";
+import type { IFeedInventoryRepository, FeedListOptions } from "../domain/repository";
 
 export interface FeedDto {
   id: string;
@@ -15,19 +15,27 @@ export interface FeedDto {
 
 export async function listFeedInventoryByUser(
   repo: IFeedInventoryRepository,
-  userId: string
-): Promise<FeedDto[]> {
-  const list = await repo.findByUserId(userId);
-  return list.map((e) => ({
-    id: e.id,
-    userId: e.userId,
-    name: e.name,
-    feedType: e.feedType,
-    weightKg: e.weightKg,
-    price: e.price,
-    consumptionPerBirdGrams: e.consumptionPerBirdGrams,
-    purchaseDate: e.purchaseDate.toISOString(),
-    createdAt: e.createdAt.toISOString(),
-    updatedAt: e.updatedAt.toISOString(),
-  }));
+  userId: string,
+  options?: FeedListOptions
+): Promise<{ list: FeedDto[]; total: number }> {
+  const countFilter = options?.feedType ? { feedType: options.feedType } : undefined;
+  const [list, total] = await Promise.all([
+    repo.findByUserId(userId, options),
+    repo.countByUserId(userId, countFilter),
+  ]);
+  return {
+    list: list.map((e) => ({
+      id: e.id,
+      userId: e.userId,
+      name: e.name,
+      feedType: e.feedType,
+      weightKg: e.weightKg,
+      price: e.price,
+      consumptionPerBirdGrams: e.consumptionPerBirdGrams,
+      purchaseDate: e.purchaseDate.toISOString(),
+      createdAt: e.createdAt.toISOString(),
+      updatedAt: e.updatedAt.toISOString(),
+    })),
+    total,
+  };
 }

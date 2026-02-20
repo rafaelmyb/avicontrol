@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { RevenueEntity, CreateRevenueInput } from "../domain/entities";
-import type { IRevenueRepository } from "../domain/repository";
+import type { IRevenueRepository, FinanceListOptions } from "../domain/repository";
 
 function toEntity(row: {
   id: string;
@@ -38,16 +38,38 @@ export class PrismaRevenueRepository implements IRevenueRepository {
     return toEntity(row);
   }
 
+  async findById(id: string, userId: string): Promise<RevenueEntity | null> {
+    const row = await prisma.revenue.findFirst({
+      where: { id, userId },
+    });
+    return row ? toEntity(row) : null;
+  }
+
   async findByUserIdAndDateRange(
     userId: string,
     start: Date,
-    end: Date
+    end: Date,
+    options?: FinanceListOptions
   ): Promise<RevenueEntity[]> {
+    const orderByField = options?.orderBy ?? "date";
+    const orderDirection = options?.orderDirection ?? "desc";
     const rows = await prisma.revenue.findMany({
       where: { userId, date: { gte: start, lte: end } },
-      orderBy: { date: "desc" },
+      orderBy: { [orderByField]: orderDirection },
+      skip: options?.skip,
+      take: options?.take,
     });
     return rows.map(toEntity);
+  }
+
+  async countByUserIdAndDateRange(
+    userId: string,
+    start: Date,
+    end: Date
+  ): Promise<number> {
+    return prisma.revenue.count({
+      where: { userId, date: { gte: start, lte: end } },
+    });
   }
 
   async sumByUserIdAndDateRange(
@@ -60,5 +82,33 @@ export class PrismaRevenueRepository implements IRevenueRepository {
       _sum: { amount: true },
     });
     return result._sum.amount ?? 0;
+  }
+
+  async update(
+    id: string,
+    userId: string,
+    data: Partial<Pick<RevenueEntity, "amount" | "description" | "source" | "date">>
+  ): Promise<RevenueEntity | null> {
+    const row = await prisma.revenue.updateMany({
+      where: { id, userId },
+      data: {
+        ...(data.amount != null && { amount: data.amount }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.source !== undefined && { source: data.source }),
+        ...(data.date != null && { date: data.date }),
+      },
+    });
+    if (row.count === 0) return null;
+    const updated = await prisma.revenue.findFirst({
+      where: { id, userId },
+    });
+    return updated ? toEntity(updated) : null;
+  }
+
+  async delete(id: string, userId: string): Promise<boolean> {
+    const result = await prisma.revenue.deleteMany({
+      where: { id, userId },
+    });
+    return result.count > 0;
   }
 }

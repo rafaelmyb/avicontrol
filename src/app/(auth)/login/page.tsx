@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { pt } from "@/shared/i18n/pt";
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 function LoginForm() {
   const router = useRouter();
@@ -38,10 +39,15 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900 mb-6">{pt.appName}</h1>
+        <h1 className="text-xl font-semibold text-gray-900 mb-6">
+          {pt.appName}
+        </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               {pt.email}
             </label>
             <input
@@ -55,7 +61,10 @@ function LoginForm() {
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               {pt.password}
             </label>
             <input
@@ -78,7 +87,10 @@ function LoginForm() {
         </form>
         <p className="mt-4 text-sm text-gray-600">
           Não tem conta?{" "}
-          <a href="/register" className="text-gray-900 font-medium hover:underline">
+          <a
+            href="/register"
+            className="text-gray-900 font-medium hover:underline"
+          >
             {pt.register}
           </a>
         </p>
@@ -89,7 +101,13 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-gray-500">{pt.loading}</p></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <LoadingSpinner />
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

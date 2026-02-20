@@ -4,12 +4,76 @@ import {
   durationDays,
   estimatedRestockDate,
 } from "../domain/services/calculations";
+import { FEED_TYPE_LABELS, FEED_TYPE_VALUES } from "@/shared/feed-types";
+import type { FeedTypeValue } from "@/shared/feed-types";
 
 export interface RestockInfo {
   feedId: string;
   name: string;
   estimatedRestockDate: Date;
   durationDays: number;
+}
+
+export interface RestockByTypeInput {
+  chickCount: number;
+  pulletCount: number;
+  henCount: number;
+}
+
+export interface RestockAlertByType {
+  feedType: FeedTypeValue;
+  label: string;
+  date: string | null;
+}
+
+const FEED_TYPE_TO_BIRD_COUNT = (
+  counts: RestockByTypeInput
+): Record<FeedTypeValue, number> => ({
+  pre_inicial: counts.chickCount,
+  crescimento: counts.pulletCount,
+  postura: counts.henCount,
+});
+
+/**
+ * Compute restock date per feed type. One entry per type (pré-inicial, crescimento, postura).
+ * Uses most recent purchaseDate per type and sum of weightKg per type.
+ */
+export async function computeRestockByFeedType(
+  repo: IFeedInventoryRepository,
+  userId: string,
+  counts: RestockByTypeInput
+): Promise<RestockAlertByType[]> {
+  const list = await repo.findByUserId(userId);
+  const birdByType = FEED_TYPE_TO_BIRD_COUNT(counts);
+
+  const result: RestockAlertByType[] = FEED_TYPE_VALUES.map((feedType) => {
+    const rows = list.filter((f) => f.feedType === feedType);
+    const birdCount = birdByType[feedType];
+    const label = FEED_TYPE_LABELS[feedType];
+
+    if (rows.length === 0 || birdCount <= 0) {
+      return { feedType, label, date: null };
+    }
+
+    const totalWeightKg = rows.reduce((sum, r) => sum + r.weightKg, 0);
+    const latest = rows.reduce((a, b) =>
+      a.purchaseDate >= b.purchaseDate ? a : b
+    );
+    const dailyGrams = dailyConsumptionGrams(
+      birdCount,
+      latest.consumptionPerBirdGrams
+    );
+    const days = durationDays(totalWeightKg, dailyGrams);
+    const restock = estimatedRestockDate(latest.purchaseDate, days);
+
+    return {
+      feedType,
+      label,
+      date: restock.toISOString(),
+    };
+  });
+
+  return result;
 }
 
 /**

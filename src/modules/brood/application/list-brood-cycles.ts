@@ -1,4 +1,4 @@
-import type { IBroodCycleRepository } from "../domain/repository";
+import type { IBroodCycleRepository, BroodListOptions } from "../domain/repository";
 
 export interface BroodCycleDto {
   id: string;
@@ -39,12 +39,21 @@ function toDto(entity: {
   };
 }
 
+export interface ListBroodResult {
+  list: BroodCycleDto[];
+  total: number;
+}
+
 export async function listBroodCyclesByUser(
   repo: IBroodCycleRepository,
-  userId: string
-): Promise<BroodCycleDto[]> {
-  const list = await repo.findByUserId(userId);
-  return list.map(toDto);
+  userId: string,
+  options?: BroodListOptions
+): Promise<ListBroodResult> {
+  const [list, total] = await Promise.all([
+    repo.findByUserId(userId, options),
+    repo.countByUserId(userId),
+  ]);
+  return { list: list.map(toDto), total };
 }
 
 export async function listBroodCyclesByChicken(

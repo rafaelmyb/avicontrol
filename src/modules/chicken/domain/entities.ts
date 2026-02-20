@@ -11,6 +11,8 @@ export type ChickenStatus =
   | "sold"
   | "deceased";
 
+export type ChickenSource = "purchased" | "hatched";
+
 export interface ChickenEntity {
   id: string;
   userId: string;
@@ -18,6 +20,8 @@ export interface ChickenEntity {
   breed: string;
   birthDate: Date;
   status: ChickenStatus;
+  source: ChickenSource;
+  purchasePrice: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,4 +32,6 @@ export interface CreateChickenInput {
   breed: string;
   birthDate: Date;
   status: ChickenStatus;
+  source: ChickenSource;
+  purchasePrice?: number | null;
 }

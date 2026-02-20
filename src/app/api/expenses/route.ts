@@ -12,6 +12,9 @@ const createBodySchema = z.object({
   date: z.string().min(1),
 });
 
+const orderBySchema = z.enum(["date", "amount"]).optional();
+const orderDirectionSchema = z.enum(["asc", "desc"]).optional();
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -26,21 +29,34 @@ export async function GET(request: Request) {
       { status: 400 }
     );
   }
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "10", 10) || 10));
+  const orderBy = orderBySchema.safeParse(searchParams.get("orderBy") ?? undefined).data ?? "date";
+  const orderDirection = orderDirectionSchema.safeParse(searchParams.get("orderDirection") ?? undefined).data ?? "desc";
+  const skip = (page - 1) * limit;
+
   const repo = new PrismaExpenseRepository();
-  const list = await repo.findByUserIdAndDateRange(
-    session.user.id,
-    new Date(start),
-    new Date(end)
-  );
-  return NextResponse.json(
-    list.map((e) => ({
+  const [list, total] = await Promise.all([
+    repo.findByUserIdAndDateRange(
+      session.user.id,
+      new Date(start),
+      new Date(end),
+      { orderBy, orderDirection, skip, take: limit }
+    ),
+    repo.countByUserIdAndDateRange(session.user.id, new Date(start), new Date(end)),
+  ]);
+  return NextResponse.json({
+    list: list.map((e) => ({
       id: e.id,
       amount: e.amount,
       description: e.description,
       category: e.category,
       date: e.date.toISOString(),
-    }))
-  );
+    })),
+    total,
+    page,
+    limit,
+  });
 }
 
 export async function POST(request: Request) {

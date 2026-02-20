@@ -39,7 +39,7 @@ export async function updateFeedInventory(
   if (input.name != null) data.name = input.name;
   if (input.feedType != null) data.feedType = input.feedType;
   if (input.weightKg != null) data.weightKg = input.weightKg;
-  if (input.price != null) data.price = input.price;
+  if (input.price !== undefined) data.price = input.price;
   if (input.consumptionPerBirdGrams != null)
     data.consumptionPerBirdGrams = input.consumptionPerBirdGrams;
   if (input.purchaseDate != null) data.purchaseDate = new Date(input.purchaseDate);

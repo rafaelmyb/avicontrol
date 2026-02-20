@@ -1,5 +1,5 @@
 import type { IChickenRepository } from "../domain/repository";
-import type { CreateChickenInput } from "../domain/entities";
+import type { ChickenSource, CreateChickenInput } from "../domain/entities";
 
 export interface CreateChickenResult {
   id: string;
@@ -8,6 +8,8 @@ export interface CreateChickenResult {
   breed: string;
   birthDate: string;
   status: string;
+  source: ChickenSource;
+  purchasePrice: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +26,8 @@ export async function createChicken(
     breed: entity.breed,
     birthDate: entity.birthDate.toISOString(),
     status: entity.status,
+    source: entity.source,
+    purchasePrice: entity.purchasePrice,
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString(),
   };

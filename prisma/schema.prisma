@@ -8,26 +8,30 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  name         String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  chickens     Chicken[]
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  name             String?
+  eggPricePerUnit  Float?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  chickens         Chicken[]
 }
 
 model Chicken {
-  id         String       @id @default(cuid())
-  userId     String
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String
-  breed      String
-  birthDate  DateTime
-  status     ChickenStatus
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  breed       String
+  birthDate   DateTime
+  status      ChickenStatus
+  source      ChickenSource @default(purchased)
+  purchasePrice Float?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   broodCycles BroodCycle[]
+  expenses    Expense[]
 
   @@index([userId])
 }
@@ -41,6 +45,11 @@ enum ChickenStatus {
   retired
   sold
   deceased
+}
+
+enum ChickenSource {
+  purchased
+  hatched
 }
 
 model BroodCycle {
@@ -59,30 +68,41 @@ model BroodCycle {
   @@index([chickenId])
 }
 
+enum FeedType {
+  pre_inicial
+  crescimento
+  postura
+}
+
 model FeedInventory {
   id                    String   @id @default(cuid())
   userId                String
   name                  String
-  feedType              String
+  feedType              FeedType
   weightKg              Float
   price                 Float?
   consumptionPerBirdGrams Float
   purchaseDate          DateTime
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  expense               Expense?
 
   @@index([userId])
 }
 
 model Expense {
-  id          String   @id @default(cuid())
-  userId      String
-  amount      Float
-  description String?
-  category    String?
-  date        DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String         @id @default(cuid())
+  userId            String
+  amount            Float
+  description       String?
+  category          String?
+  date              DateTime
+  chickenId         String?        @unique
+  feedInventoryId   String?        @unique
+  chicken           Chicken?       @relation(fields: [chickenId], references: [id], onDelete: SetNull)
+  feedInventory     FeedInventory? @relation(fields: [feedInventoryId], references: [id], onDelete: SetNull)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   @@index([userId])
   @@index([userId, date])

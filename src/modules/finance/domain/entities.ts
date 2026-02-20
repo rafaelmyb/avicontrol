@@ -5,6 +5,8 @@ export interface ExpenseEntity {
   description: string | null;
   category: string | null;
   date: Date;
+  chickenId: string | null;
+  feedInventoryId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,6 +28,8 @@ export interface CreateExpenseInput {
   description?: string | null;
   category?: string | null;
   date: Date;
+  chickenId?: string | null;
+  feedInventoryId?: string | null;
 }
 
 export interface CreateRevenueInput {

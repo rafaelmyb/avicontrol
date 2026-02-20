@@ -1,12 +1,12 @@
 # AviControl – Poultry Management System
 
-Sistema de gestão avícola (controle de galinhas, ninhadas, ração e financeiro).
+Sistema de gestão avícola (controle de galinhas, chocos, ração e financeiro).
 
 ## Stack
 
 - Next.js 14 (App Router), TypeScript, TailwindCSS
 - Prisma + PostgreSQL
-- NextAuth (credentials + bcrypt)
+- NextAuth (credentials + bcryptjs)
 - TanStack React Query, Zod
 
 ## Setup
@@ -51,7 +51,7 @@ Acesse `http://localhost:3000`. Cadastre um usuário em **Cadastrar** e faça lo
 ## Estrutura (Clean Architecture)
 
 - `src/modules/chicken` – galinhas (idade, postura, status)
-- `src/modules/brood` – ciclos de ninhada
+- `src/modules/brood` – ciclos de choco
 - `src/modules/feed` – estoque de ração e previsão de reabastecimento
 - `src/modules/finance` – despesas, receita e lucro mensal
 - `src/shared` – constantes e i18n (PT-BR)

@@ -1,12 +1,13 @@
+import type { FeedType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { FeedInventoryEntity, CreateFeedInventoryInput } from "../domain/entities";
-import type { IFeedInventoryRepository } from "../domain/repository";
+import type { IFeedInventoryRepository, FeedListOptions } from "../domain/repository";
 
 function toEntity(row: {
   id: string;
   userId: string;
   name: string;
-  feedType: string;
+  feedType: FeedType;
   weightKg: number;
   price: number | null;
   consumptionPerBirdGrams: number;
@@ -34,7 +35,7 @@ export class PrismaFeedInventoryRepository implements IFeedInventoryRepository {
       data: {
         userId: data.userId,
         name: data.name,
-        feedType: data.feedType,
+        feedType: data.feedType as FeedType,
         weightKg: data.weightKg,
         price: data.price,
         consumptionPerBirdGrams: data.consumptionPerBirdGrams,
@@ -51,12 +52,31 @@ export class PrismaFeedInventoryRepository implements IFeedInventoryRepository {
     return row ? toEntity(row) : null;
   }
 
-  async findByUserId(userId: string): Promise<FeedInventoryEntity[]> {
+  async findByUserId(userId: string, options?: FeedListOptions): Promise<FeedInventoryEntity[]> {
+    const where: { userId: string; feedType?: FeedType } = { userId };
+    if (options?.feedType) {
+      where.feedType = options.feedType as FeedType;
+    }
+    const orderBy = (options?.orderBy ?? "purchaseDate") as "purchaseDate" | "name" | "createdAt";
+    const orderDirection = options?.orderDirection ?? "desc";
     const rows = await prisma.feedInventory.findMany({
-      where: { userId },
-      orderBy: { purchaseDate: "desc" },
+      where,
+      orderBy: { [orderBy]: orderDirection },
+      skip: options?.skip,
+      take: options?.take,
     });
     return rows.map(toEntity);
+  }
+
+  async countByUserId(
+    userId: string,
+    options?: Pick<FeedListOptions, "feedType">
+  ): Promise<number> {
+    const where: { userId: string; feedType?: FeedType } = { userId };
+    if (options?.feedType) {
+      where.feedType = options.feedType as FeedType;
+    }
+    return prisma.feedInventory.count({ where });
   }
 
   async update(
@@ -68,7 +88,7 @@ export class PrismaFeedInventoryRepository implements IFeedInventoryRepository {
       where: { id, userId },
       data: {
         ...(data.name != null && { name: data.name }),
-        ...(data.feedType != null && { feedType: data.feedType }),
+        ...(data.feedType != null && { feedType: data.feedType as FeedType }),
         ...(data.weightKg != null && { weightKg: data.weightKg }),
         ...(data.price != null && { price: data.price }),
         ...(data.consumptionPerBirdGrams != null && { consumptionPerBirdGrams: data.consumptionPerBirdGrams }),

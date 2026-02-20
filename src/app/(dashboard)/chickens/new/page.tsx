@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { pt } from "@/shared/i18n/pt";
 import { ChickenForm } from "@/modules/chicken/presentation/chicken-form";
+import { FormPageHeader } from "@/components/form-page-header";
 
 const statusOptions = [
   { value: "chick", label: pt.chick },
@@ -25,6 +26,8 @@ export default function NewChickenPage() {
       breed: string;
       birthDate: string;
       status: string;
+      source: string;
+      purchasePrice?: number | null;
     }) => {
       const res = await fetch("/api/chickens", {
         method: "POST",
@@ -45,10 +48,12 @@ export default function NewChickenPage() {
   });
 
   return (
-    <div className="p-6 max-w-lg">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">
-        {pt.addChicken}
-      </h1>
+    <div className="p-6 max-w-lg mx-auto">
+      <FormPageHeader
+        title={pt.addChicken}
+        backHref="/chickens"
+        backLabel={pt.chickens}
+      />
       <ChickenForm
         statusOptions={statusOptions}
         onSubmit={(values) =>
@@ -57,6 +62,8 @@ export default function NewChickenPage() {
             breed: values.breed,
             birthDate: values.birthDate,
             status: values.status,
+            source: values.source,
+            purchasePrice: values.purchasePrice ?? null,
           })
         }
         loading={create.isPending}

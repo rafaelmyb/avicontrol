@@ -8,11 +8,14 @@ export interface ChickenFormValues {
   breed: string;
   birthDate: string;
   status: string;
+  source: string;
+  purchasePrice?: number | null;
 }
 
 interface ChickenFormProps {
   initialValues?: Partial<ChickenFormValues>;
   statusOptions: readonly { value: string; label: string }[];
+  sourceOptions?: readonly { value: string; label: string }[];
   onSubmit: (values: ChickenFormValues) => Promise<void>;
   loading?: boolean;
   error?: string;
@@ -21,6 +24,10 @@ interface ChickenFormProps {
 export function ChickenForm({
   initialValues,
   statusOptions,
+  sourceOptions = [
+    { value: "purchased", label: pt.purchased },
+    { value: "hatched", label: pt.hatched },
+  ],
   onSubmit,
   loading = false,
   error,
@@ -28,19 +35,35 @@ export function ChickenForm({
   const [name, setName] = useState(initialValues?.name ?? "");
   const [breed, setBreed] = useState(initialValues?.breed ?? "");
   const [birthDate, setBirthDate] = useState(
-    initialValues?.birthDate ?? new Date().toISOString().slice(0, 10)
+    initialValues?.birthDate ?? new Date().toISOString().slice(0, 10),
   );
   const [status, setStatus] = useState(initialValues?.status ?? "chick");
+  const [source, setSource] = useState(initialValues?.source ?? "purchased");
+  const [purchasePrice, setPurchasePrice] = useState(
+    initialValues?.purchasePrice != null
+      ? String(initialValues.purchasePrice)
+      : "",
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await onSubmit({ name, breed, birthDate, status });
+    await onSubmit({
+      name,
+      breed,
+      birthDate,
+      status,
+      source,
+      purchasePrice: purchasePrice === "" ? null : Number(purchasePrice),
+    });
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="name"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           {pt.chickenName}
         </label>
         <input
@@ -53,7 +76,10 @@ export function ChickenForm({
         />
       </div>
       <div>
-        <label htmlFor="breed" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="breed"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           {pt.breed}
         </label>
         <input
@@ -65,8 +91,11 @@ export function ChickenForm({
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
         />
       </div>
-      <div>
-        <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-1">
+      <div className="min-w-0 overflow-hidden">
+        <label
+          htmlFor="birthDate"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           {pt.birthDate}
         </label>
         <input
@@ -75,11 +104,14 @@ export function ChickenForm({
           value={birthDate}
           onChange={(e) => setBirthDate(e.target.value)}
           required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
+          className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
         />
       </div>
       <div>
-        <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="status"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           {pt.status}
         </label>
         <select
@@ -95,6 +127,45 @@ export function ChickenForm({
           ))}
         </select>
       </div>
+      <div>
+        <label
+          htmlFor="source"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          {pt.source}
+        </label>
+        <select
+          id="source"
+          value={source}
+          onChange={(e) => setSource(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
+        >
+          {sourceOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {source === "purchased" && (
+        <div>
+          <label
+            htmlFor="purchasePrice"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            {pt.amount}
+          </label>
+          <input
+            id="purchasePrice"
+            type="number"
+            min={0}
+            step="0.01"
+            value={purchasePrice}
+            onChange={(e) => setPurchasePrice(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
+          />
+        </div>
+      )}
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button

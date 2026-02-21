@@ -31,6 +31,10 @@ export const pt = {
   // Chicken
   addChicken: "Adicionar galinha",
   chickenName: "Nome",
+  addAsBatch: "Adicionar em lote",
+  batchName: "Nome do lote",
+  quantity: "Quantidade",
+  batch: "Lote",
   breed: "Raça",
   birthDate: "Data de nascimento",
   status: "Status",
@@ -103,6 +107,13 @@ export const pt = {
   // Dashboard
   estimatedMonthlyEggs: "Ovos estimados (mês)",
   noData: "Sem dados",
+
+  // Pagination
+  itemsPerPage: "Itens por página",
+  previous: "Anterior",
+  next: "Próxima",
+  pageOf: (current: number, total: number) => `Página ${current} de ${total}`,
+  resultsCount: (total: number) => `${total} resultado(s)`,
 
   // Common
   loading: "Carregando...",

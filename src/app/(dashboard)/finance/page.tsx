@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { pt } from "@/shared/i18n/pt";
 import { formatDateOnly } from "@/shared/format-date";
 import { EditLink, DeleteButton } from "@/components/action-icon-button";
+import { TablePagination } from "@/components/table-pagination";
+import { DashboardQueries } from "@/services/queries/dashboard";
+import { ExpenseQueries, ExpenseMutations } from "@/services/queries/expenses";
+import { RevenueQueries, RevenueMutations } from "@/services/queries/revenue";
 
 function getMonthRange() {
   const now = new Date();
@@ -30,14 +33,7 @@ export default function FinancePage() {
   const [tab, setTab] = useState<"expenses" | "revenue">("expenses");
   const { start, end } = getMonthRange();
 
-  const { data: dashboardData } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: async () => {
-      const res = await fetch("/api/dashboard");
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
-  });
+  const dashboardData = DashboardQueries.useLoadDashboard();
 
   return (
     <div className="p-6">
@@ -78,12 +74,12 @@ export default function FinancePage() {
           start={start}
           end={end}
           eggRevenueSummary={
-            dashboardData
+            dashboardData?.data
               ? {
-                  estimatedMonthlyEggs: dashboardData.estimatedMonthlyEggs ?? 0,
-                  eggPricePerUnit: dashboardData.eggPricePerUnit ?? 0,
-                  estimatedEggRevenue: dashboardData.estimatedEggRevenue ?? 0,
-                  monthlyRevenueWithEggs: dashboardData.monthlyRevenueWithEggs ?? 0,
+                  estimatedMonthlyEggs: dashboardData.data.estimatedMonthlyEggs ?? 0,
+                  eggPricePerUnit: dashboardData.data.eggPricePerUnit ?? 0,
+                  estimatedEggRevenue: dashboardData.data.estimatedEggRevenue ?? 0,
+                  monthlyRevenueWithEggs: dashboardData.data.monthlyRevenueWithEggs ?? 0,
                 }
               : null
           }
@@ -97,38 +93,26 @@ const EXPENSE_ORDER_OPTIONS: { value: "date" | "amount"; label: string }[] = [
   { value: "date", label: "Data" },
   { value: "amount", label: "Valor" },
 ];
-const FINANCE_PAGE_LIMIT = 10;
+const DEFAULT_FINANCE_LIMIT = 10;
 
 function ExpenseSection({ start, end }: { start: string; end: string }) {
-  const queryClient = useQueryClient();
   const [orderBy, setOrderBy] = useState<"date" | "amount">("date");
   const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_FINANCE_LIMIT);
 
-  const { data: expenseData } = useQuery({
-    queryKey: ["expenses", start, end, orderBy, orderDirection, page, FINANCE_PAGE_LIMIT],
-    queryFn: async () => {
-      const params = new URLSearchParams({ start, end, orderBy, orderDirection: orderDirection, page: String(page), limit: String(FINANCE_PAGE_LIMIT) });
-      const res = await fetch(`/api/expenses?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed");
-      return res.json() as Promise<{ list: { id: string; amount: number; description: string | null; category: string | null; date: string }[]; total: number; page: number; limit: number }>;
-    },
+  const expenseData = ExpenseQueries.useLoadExpenses({
+    start,
+    end,
+    page,
+    limit,
+    orderBy,
+    orderDirection,
   });
+  const deleteExpense = ExpenseMutations.useDeleteExpense();
 
-  const expenses = expenseData?.list ?? [];
-  const total = expenseData?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / FINANCE_PAGE_LIMIT));
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    },
-  });
+  const expenses = expenseData.data?.list ?? [];
+  const total = expenseData.data?.total ?? 0;
 
   return (
     <div>
@@ -192,9 +176,9 @@ function ExpenseSection({ start, end }: { start: string; end: string }) {
                       <EditLink href={`/finance/expenses/${e.id}`} />
                       <DeleteButton
                         onClick={() => {
-                          if (window.confirm("Excluir esta despesa?")) deleteMutation.mutate(e.id);
+                          if (window.confirm("Excluir esta despesa?")) deleteExpense.mutate(e.id);
                         }}
-                        disabled={deleteMutation.isPending}
+                        disabled={deleteExpense.isPending}
                       />
                     </span>
                   </td>
@@ -204,29 +188,14 @@ function ExpenseSection({ start, end }: { start: string; end: string }) {
           </table>
         </div>
       )}
-      <div className="flex justify-end items-center gap-3 mt-3">
-        <span className="text-sm text-gray-500">
-          {total} resultado(s) · Página {expenseData?.page ?? 1} de {totalPages}
-        </span>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
-          >
-            Anterior
-          </button>
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
-          >
-            Próxima
-          </button>
-        </div>
-      </div>
+      <TablePagination
+        total={total}
+        page={page}
+        limit={limit}
+        onPageChange={setPage}
+        onPageSizeChange={setLimit}
+        currentPageFromApi={expenseData.data?.page}
+      />
     </div>
   );
 }
@@ -250,35 +219,23 @@ function RevenueSection({
     monthlyRevenueWithEggs: number;
   } | null;
 }) {
-  const queryClient = useQueryClient();
   const [orderBy, setOrderBy] = useState<"date" | "amount">("date");
   const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_FINANCE_LIMIT);
 
-  const { data: revenueData } = useQuery({
-    queryKey: ["revenue", start, end, orderBy, orderDirection, page, FINANCE_PAGE_LIMIT],
-    queryFn: async () => {
-      const params = new URLSearchParams({ start, end, orderBy, orderDirection: orderDirection, page: String(page), limit: String(FINANCE_PAGE_LIMIT) });
-      const res = await fetch(`/api/revenue?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed");
-      return res.json() as Promise<{ list: { id: string; amount: number; description: string | null; source: string | null; date: string }[]; total: number; page: number; limit: number }>;
-    },
+  const revenueData = RevenueQueries.useLoadRevenueList({
+    start,
+    end,
+    page,
+    limit,
+    orderBy,
+    orderDirection,
   });
+  const deleteRevenue = RevenueMutations.useDeleteRevenue();
 
-  const revenue = revenueData?.list ?? [];
-  const total = revenueData?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / FINANCE_PAGE_LIMIT));
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/revenue/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["revenue"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    },
-  });
+  const revenue = revenueData.data?.list ?? [];
+  const total = revenueData.data?.total ?? 0;
 
   return (
     <div>
@@ -354,9 +311,9 @@ function RevenueSection({
                       <EditLink href={`/finance/revenue/${r.id}`} />
                       <DeleteButton
                         onClick={() => {
-                          if (window.confirm("Excluir esta receita?")) deleteMutation.mutate(r.id);
+                          if (window.confirm("Excluir esta receita?")) deleteRevenue.mutate(r.id);
                         }}
-                        disabled={deleteMutation.isPending}
+                        disabled={deleteRevenue.isPending}
                       />
                     </span>
                   </td>
@@ -366,29 +323,14 @@ function RevenueSection({
           </table>
         </div>
       )}
-      <div className="flex justify-end items-center gap-3 mt-3">
-        <span className="text-sm text-gray-500">
-          {total} resultado(s) · Página {revenueData?.page ?? 1} de {totalPages}
-        </span>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
-          >
-            Anterior
-          </button>
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
-          >
-            Próxima
-          </button>
-        </div>
-      </div>
+      <TablePagination
+        total={total}
+        page={page}
+        limit={limit}
+        onPageChange={setPage}
+        onPageSizeChange={setLimit}
+        currentPageFromApi={revenueData.data?.page}
+      />
     </div>
   );
 }

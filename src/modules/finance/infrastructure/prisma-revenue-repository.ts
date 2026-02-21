@@ -89,20 +89,27 @@ export class PrismaRevenueRepository implements IRevenueRepository {
     userId: string,
     data: Partial<Pick<RevenueEntity, "amount" | "description" | "source" | "date">>
   ): Promise<RevenueEntity | null> {
-    const row = await prisma.revenue.updateMany({
+    const updateData: {
+      amount?: number;
+      description?: string | null;
+      source?: string | null;
+      date?: Date;
+    } = {};
+    if (data.amount != null) updateData.amount = data.amount;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.source !== undefined) updateData.source = data.source;
+    if (data.date != null) updateData.date = data.date;
+    if (Object.keys(updateData).length === 0) {
+      const row = await prisma.revenue.findFirst({ where: { id, userId } });
+      return row ? toEntity(row) : null;
+    }
+    const result = await prisma.revenue.updateMany({
       where: { id, userId },
-      data: {
-        ...(data.amount != null && { amount: data.amount }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.source !== undefined && { source: data.source }),
-        ...(data.date != null && { date: data.date }),
-      },
+      data: updateData,
     });
-    if (row.count === 0) return null;
-    const updated = await prisma.revenue.findFirst({
-      where: { id, userId },
-    });
-    return updated ? toEntity(updated) : null;
+    if (result.count === 0) return null;
+    const row = await prisma.revenue.findFirst({ where: { id, userId } });
+    return row ? toEntity(row) : null;
   }
 
   async delete(id: string, userId: string): Promise<boolean> {

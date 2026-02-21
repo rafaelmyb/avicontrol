@@ -2,78 +2,61 @@
 
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { pt } from "@/shared/i18n/pt";
 import { FormPageHeader } from "@/components/form-page-header";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { RevenueQueries, RevenueMutations } from "@/services/queries/revenue";
+
+type RevenueEditFields = {
+  amount: number;
+  description: string;
+  source: string;
+  date: string;
+};
 
 export default function EditRevenuePage() {
   const params = useParams();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const id = params.id as string;
 
-  const { data: revenue, isLoading, error } = useQuery({
-    queryKey: ["revenue", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/revenue/${id}`);
-      if (!res.ok) throw new Error("Not found");
-      return res.json() as Promise<{
-        id: string;
-        amount: number;
-        description: string | null;
-        source: string | null;
-        date: string;
-      }>;
-    },
-    enabled: !!id,
-  });
+  const revenue = RevenueQueries.useLoadRevenue(id);
+  const updateRevenue = RevenueMutations.useUpdateRevenue(id);
 
-  const [amount, setAmount] = useState(0);
-  const [description, setDescription] = useState("");
-  const [source, setSource] = useState("");
-  const [date, setDate] = useState("");
+  const { register, handleSubmit, reset } = useForm<RevenueEditFields>({
+    defaultValues: { amount: 0, description: "", source: "", date: "" },
+  });
 
   useEffect(() => {
-    if (revenue) {
-      setAmount(revenue.amount);
-      setDescription(revenue.description ?? "");
-      setSource(revenue.source ?? "");
-      setDate(revenue.date.slice(0, 10));
-    }
-  }, [revenue]);
-
-  const update = useMutation({
-    mutationFn: async (body: {
-      amount: number;
-      description: string | null;
-      source: string | null;
-      date: string;
-    }) => {
-      const res = await fetch(`/api/revenue/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+    if (revenue.data) {
+      const r = revenue.data;
+      reset({
+        amount: r.amount,
+        description: r.description ?? "",
+        source: r.source ?? "",
+        date: r.date.slice(0, 10),
       });
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["revenue"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      router.push("/finance");
-    },
-  });
+    }
+  }, [revenue.data, reset]);
 
-  if (isLoading || !revenue) {
+  const onSubmit = (data: RevenueEditFields) => {
+    updateRevenue.mutate({
+      amount: data.amount,
+      description: data.description || null,
+      source: data.source || null,
+      date: data.date,
+    });
+  };
+
+  if (revenue.isLoading || !revenue.data) {
     return (
       <div className="p-6">
         <LoadingSpinner />
       </div>
     );
   }
-  if (error) {
+  if (revenue.error) {
     return (
       <div className="p-6">
         <p className="text-red-600">{pt.error}</p>
@@ -84,16 +67,6 @@ export default function EditRevenuePage() {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    update.mutate({
-      amount,
-      description: description || null,
-      source: source || null,
-      date: new Date(date).toISOString(),
-    });
-  };
-
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <FormPageHeader
@@ -101,7 +74,7 @@ export default function EditRevenuePage() {
         backHref="/finance"
         backLabel={pt.finance}
       />
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             {pt.amount}
@@ -109,10 +82,8 @@ export default function EditRevenuePage() {
           <input
             type="number"
             step={0.01}
-            value={amount || ""}
-            onChange={(e) => setAmount(Number(e.target.value))}
+            {...register("amount", { valueAsNumber: true, required: true })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
           />
         </div>
         <div>
@@ -121,8 +92,7 @@ export default function EditRevenuePage() {
           </label>
           <input
             type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            {...register("description")}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
@@ -132,8 +102,7 @@ export default function EditRevenuePage() {
           </label>
           <input
             type="text"
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
+            {...register("source")}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
@@ -143,19 +112,17 @@ export default function EditRevenuePage() {
           </label>
           <input
             type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
+            {...register("date", { required: true })}
             className="w-full max-w-full min-w-0 px-3 py-2 border border-gray-300 rounded-md"
-            required
           />
         </div>
         <div className="flex gap-2">
           <button
             type="submit"
-            disabled={update.isPending}
+            disabled={updateRevenue.isPending}
             className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 disabled:opacity-50"
           >
-            {update.isPending ? pt.loading : pt.save}
+            {updateRevenue.isPending ? pt.loading : pt.save}
           </button>
           <button
             type="button"
@@ -165,8 +132,8 @@ export default function EditRevenuePage() {
             {pt.cancel}
           </button>
         </div>
-        {update.error && (
-          <p className="text-sm text-red-600">{update.error.message}</p>
+        {updateRevenue.error && (
+          <p className="text-sm text-red-600">{updateRevenue.error.message}</p>
         )}
       </form>
     </div>

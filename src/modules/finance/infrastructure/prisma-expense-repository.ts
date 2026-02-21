@@ -109,20 +109,27 @@ export class PrismaExpenseRepository implements IExpenseRepository {
     userId: string,
     data: Partial<Pick<ExpenseEntity, "amount" | "description" | "category" | "date">>
   ): Promise<ExpenseEntity | null> {
-    const row = await prisma.expense.updateMany({
+    const updateData: {
+      amount?: number;
+      description?: string | null;
+      category?: string | null;
+      date?: Date;
+    } = {};
+    if (data.amount != null) updateData.amount = data.amount;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.category !== undefined) updateData.category = data.category;
+    if (data.date != null) updateData.date = data.date;
+    if (Object.keys(updateData).length === 0) {
+      const row = await prisma.expense.findFirst({ where: { id, userId } });
+      return row ? toEntity(row) : null;
+    }
+    const result = await prisma.expense.updateMany({
       where: { id, userId },
-      data: {
-        ...(data.amount != null && { amount: data.amount }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.category !== undefined && { category: data.category }),
-        ...(data.date != null && { date: data.date }),
-      },
+      data: updateData,
     });
-    if (row.count === 0) return null;
-    const updated = await prisma.expense.findFirst({
-      where: { id, userId },
-    });
-    return updated ? toEntity(updated) : null;
+    if (result.count === 0) return null;
+    const row = await prisma.expense.findFirst({ where: { id, userId } });
+    return row ? toEntity(row) : null;
   }
 
   async delete(id: string, userId: string): Promise<boolean> {

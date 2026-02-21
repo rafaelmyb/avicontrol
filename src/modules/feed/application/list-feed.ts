@@ -4,6 +4,7 @@ export interface FeedDto {
   id: string;
   userId: string;
   name: string;
+  batchName: string | null;
   feedType: string;
   weightKg: number;
   price: number | null;
@@ -18,7 +19,10 @@ export async function listFeedInventoryByUser(
   userId: string,
   options?: FeedListOptions
 ): Promise<{ list: FeedDto[]; total: number }> {
-  const countFilter = options?.feedType ? { feedType: options.feedType } : undefined;
+  const countFilter =
+    options?.feedType || options?.batchName
+      ? { feedType: options.feedType, batchName: options.batchName }
+      : undefined;
   const [list, total] = await Promise.all([
     repo.findByUserId(userId, options),
     repo.countByUserId(userId, countFilter),
@@ -28,6 +32,7 @@ export async function listFeedInventoryByUser(
       id: e.id,
       userId: e.userId,
       name: e.name,
+      batchName: e.batchName,
       feedType: e.feedType,
       weightKg: e.weightKg,
       price: e.price,

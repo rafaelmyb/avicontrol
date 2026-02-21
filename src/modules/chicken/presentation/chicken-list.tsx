@@ -1,25 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { pt } from "@/shared/i18n/pt";
 import { formatDateOnly } from "@/shared/format-date";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { EditLink, DeleteButton } from "@/components/action-icon-button";
-
-interface ChickenDto {
-  id: string;
-  name: string;
-  breed: string;
-  birthDate: string;
-  status: string;
-  source: string;
-  purchasePrice: number | null;
-  ageInDays: number;
-  layStartDate: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { TablePagination } from "@/components/table-pagination";
+import { ChickenQueries, ChickenMutations } from "@/services/queries/chickens";
 
 const STATUS_OPTIONS = [
   "",
@@ -61,60 +48,34 @@ const ORDER_BY_OPTIONS: {
 const DEFAULT_LIMIT = 10;
 
 export function ChickenList() {
-  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("");
+  const [batchFilter, setBatchFilter] = useState("");
   const [orderBy, setOrderBy] = useState<"createdAt" | "name" | "birthDate">(
     "createdAt",
   );
   const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
-  const limit = DEFAULT_LIMIT;
+  const [limit, setLimit] = useState(DEFAULT_LIMIT);
 
-  const deleteChicken = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/chickens/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["chickens"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+  const batchNamesQuery = ChickenQueries.useLoadChickenBatchNames();
+  const batchNames = batchNamesQuery.data?.batchNames ?? [];
+
+  const chickensQuery = ChickenQueries.useLoadChickens({
+    page,
+    limit,
+    status: statusFilter || null,
+    batchName: batchFilter || null,
+    orderBy,
+    orderDirection,
   });
+  const deleteChicken = ChickenMutations.useDeleteChicken();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: [
-      "chickens",
-      statusFilter || null,
-      orderBy,
-      orderDirection,
-      page,
-      limit,
-    ],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("limit", String(limit));
-      params.set("orderBy", orderBy);
-      params.set("orderDirection", orderDirection);
-      if (statusFilter) params.set("status", statusFilter);
-      const res = await fetch(`/api/chickens?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json() as Promise<{
-        chickens: ChickenDto[];
-        total: number;
-        page: number;
-        limit: number;
-      }>;
-    },
-  });
-
-  if (isLoading)
+  if (chickensQuery.isLoading)
     return <LoadingSpinner minHeight="min-h-[calc(100vh-200px)]" />;
-  if (error) return <p className="text-red-600">{pt.error}</p>;
+  if (chickensQuery.error) return <p className="text-red-600">{pt.error}</p>;
 
-  const chickens = data?.chickens ?? [];
-  const total = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const chickens = chickensQuery.data?.chickens ?? [];
+  const total = chickensQuery.data?.total ?? 0;
 
   return (
     <div className="space-y-3">
@@ -134,6 +95,24 @@ export function ChickenList() {
           {STATUS_OPTIONS.filter(Boolean).map((s) => (
             <option key={s} value={s}>
               {statusLabel[s]}
+            </option>
+          ))}
+        </select>
+        <select
+          value={batchFilter}
+          onChange={(e) => {
+            setBatchFilter(e.target.value);
+            setPage(1);
+          }}
+          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+        >
+          <option value="" disabled>
+            {pt.batch}
+          </option>
+          <option value="">Todos</option>
+          {batchNames.map((name) => (
+            <option key={name} value={name}>
+              {name}
             </option>
           ))}
         </select>
@@ -177,6 +156,9 @@ export function ChickenList() {
                 {pt.chickenName}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                {pt.batch}
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 {pt.breed}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -203,6 +185,9 @@ export function ChickenList() {
             {chickens.map((c) => (
               <tr key={c.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-sm text-gray-900">{c.name}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  {c.batchName ?? "—"}
+                </td>
                 <td className="px-4 py-3 text-sm text-gray-600">{c.breed}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">
                   {formatDateOnly(c.birthDate)}
@@ -238,29 +223,14 @@ export function ChickenList() {
           </tbody>
         </table>
       </div>
-      <div className="flex justify-end items-center gap-3 mt-3">
-        <span className="text-sm text-gray-500">
-          {total} resultado(s) · Página {data?.page ?? 1} de {totalPages}
-        </span>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
-          >
-            Anterior
-          </button>
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
-          >
-            Próxima
-          </button>
-        </div>
-      </div>
+      <TablePagination
+        total={total}
+        page={page}
+        limit={limit}
+        onPageChange={setPage}
+        onPageSizeChange={setLimit}
+        currentPageFromApi={chickensQuery.data?.page}
+      />
     </div>
   );
 }

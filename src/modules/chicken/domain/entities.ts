@@ -17,6 +17,7 @@ export interface ChickenEntity {
   id: string;
   userId: string;
   name: string;
+  batchName: string | null;
   breed: string;
   birthDate: Date;
   status: ChickenStatus;
@@ -29,6 +30,7 @@ export interface ChickenEntity {
 export interface CreateChickenInput {
   userId: string;
   name: string;
+  batchName?: string | null;
   breed: string;
   birthDate: Date;
   status: ChickenStatus;

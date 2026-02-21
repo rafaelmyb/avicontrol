@@ -1,59 +1,39 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { pt } from "@/shared/i18n/pt";
 import { FormPageHeader } from "@/components/form-page-header";
+import { ExpenseMutations } from "@/services/queries/expenses";
 
-function getMonthRange() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return {
-    start: start.toISOString().slice(0, 10),
-    end: end.toISOString().slice(0, 10),
-  };
-}
+type ExpenseNewFields = {
+  amount: number;
+  description: string;
+  category: string;
+  date: string;
+};
+
+const defaultValues: ExpenseNewFields = {
+  amount: 0,
+  description: "",
+  category: "",
+  date: new Date().toISOString().slice(0, 10),
+};
 
 export default function NewExpensePage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const { start, end } = getMonthRange();
-  const [amount, setAmount] = useState(0);
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const createExpense = ExpenseMutations.useCreateExpense();
 
-  const create = useMutation({
-    mutationFn: async (body: {
-      amount: number;
-      description: string | null;
-      category: string | null;
-      date: string;
-    }) => {
-      const res = await fetch("/api/expenses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expenses", start, end] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      router.push("/finance");
-    },
+  const { register, handleSubmit } = useForm<ExpenseNewFields>({
+    defaultValues,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    create.mutate({
-      amount,
-      description: description || null,
-      category: category || null,
-      date: new Date(date).toISOString(),
+  const onSubmit = (data: ExpenseNewFields) => {
+    createExpense.mutate({
+      amount: data.amount,
+      description: data.description || null,
+      category: data.category || null,
+      date: data.date,
     });
   };
 
@@ -64,7 +44,7 @@ export default function NewExpensePage() {
         backHref="/finance"
         backLabel={pt.finance}
       />
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             {pt.amount}
@@ -72,10 +52,8 @@ export default function NewExpensePage() {
           <input
             type="number"
             step={0.01}
-            value={amount || ""}
-            onChange={(e) => setAmount(Number(e.target.value))}
+            {...register("amount", { valueAsNumber: true, required: true })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
           />
         </div>
         <div>
@@ -84,8 +62,7 @@ export default function NewExpensePage() {
           </label>
           <input
             type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            {...register("description")}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
@@ -95,8 +72,7 @@ export default function NewExpensePage() {
           </label>
           <input
             type="text"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            {...register("category")}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
@@ -106,19 +82,17 @@ export default function NewExpensePage() {
           </label>
           <input
             type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
+            {...register("date", { required: true })}
             className="w-full max-w-full min-w-0 px-3 py-2 border border-gray-300 rounded-md"
-            required
           />
         </div>
         <div className="flex gap-2">
           <button
             type="submit"
-            disabled={create.isPending}
+            disabled={createExpense.isPending}
             className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 disabled:opacity-50"
           >
-            {create.isPending ? pt.loading : pt.save}
+            {createExpense.isPending ? pt.loading : pt.save}
           </button>
           <button
             type="button"
@@ -128,8 +102,8 @@ export default function NewExpensePage() {
             {pt.cancel}
           </button>
         </div>
-        {create.error && (
-          <p className="text-sm text-red-600">{create.error.message}</p>
+        {createExpense.error && (
+          <p className="text-sm text-red-600">{createExpense.error.message}</p>
         )}
       </form>
     </div>

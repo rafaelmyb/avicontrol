@@ -53,6 +53,7 @@ export async function GET(request: Request) {
   const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 10));
   const skip = (page - 1) * limit;
   const status = searchParams.get("status") ?? undefined;
+  const batchName = searchParams.get("batchName") ?? undefined;
   const orderBy = (searchParams.get("orderBy") as "createdAt" | "name" | "birthDate") || "createdAt";
   const orderDirection = (searchParams.get("orderDirection") as "asc" | "desc") || "desc";
 
@@ -65,6 +66,7 @@ export async function GET(request: Request) {
     skip,
     take: limit,
     status,
+    batchName,
     orderBy,
     orderDirection,
   });

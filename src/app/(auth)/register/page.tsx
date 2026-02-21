@@ -1,39 +1,53 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { pt } from "@/shared/i18n/pt";
+import { registerUser } from "@/services/requests/auth/register";
+
+type RegisterFields = {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
+
+const defaultValues: RegisterFields = {
+  name: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+};
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const { register, handleSubmit, watch } = useForm<RegisterFields>({
+    defaultValues,
+  });
+
+  const password = watch("password");
+
+  async function onSubmit(data: RegisterFields) {
     setError("");
-    if (password !== confirmPassword) {
+    if (data.password !== data.confirmPassword) {
       setError(pt.passwordsDoNotMatch);
       return;
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name: name || undefined }),
+      await registerUser({
+        email: data.email,
+        password: data.password,
+        name: data.name || undefined,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error === "Email already registered" ? "E-mail já cadastrado." : pt.error);
-        return;
-      }
       router.push("/login?registered=1");
       router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : pt.error);
     } finally {
       setLoading(false);
     }
@@ -43,7 +57,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
         <h1 className="text-xl font-semibold text-gray-900 mb-6">{pt.appName}</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
               Nome (opcional)
@@ -51,8 +65,7 @@ export default function RegisterPage() {
             <input
               id="name"
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              {...register("name")}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
             />
           </div>
@@ -63,9 +76,7 @@ export default function RegisterPage() {
             <input
               id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              {...register("email", { required: true })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
             />
           </div>
@@ -76,10 +87,7 @@ export default function RegisterPage() {
             <input
               id="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
+              {...register("password", { required: true, minLength: 6 })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
             />
           </div>
@@ -90,9 +98,10 @@ export default function RegisterPage() {
             <input
               id="confirmPassword"
               type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
+              {...register("confirmPassword", {
+                required: true,
+                validate: (v) => v === password || pt.passwordsDoNotMatch,
+              })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
             />
           </div>

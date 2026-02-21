@@ -20,7 +20,10 @@ input[type="time"] {
   max-width: 100%;
   min-width: 0;
   -webkit-min-logical-width: 0;
-  max-width: calc(100% - 26px);
+
+  @media (max-width: 512px) {
+    max-width: calc(100% - 26px) !important;
+  }
 }
 
 @layer utilities {

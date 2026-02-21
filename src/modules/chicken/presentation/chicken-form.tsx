@@ -1,16 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { pt } from "@/shared/i18n/pt";
+
+const BATCH_QUANTITY_MIN = 2;
+const BATCH_QUANTITY_MAX = 50;
+
+const defaultBirthDate = new Date().toISOString().slice(0, 10);
 
 export interface ChickenFormValues {
   name: string;
+  addAsBatch?: boolean;
+  quantity?: number;
   breed: string;
   birthDate: string;
   status: string;
   source: string;
   purchasePrice?: number | null;
 }
+
+/** Form state uses string for purchasePrice input */
+type ChickenFormFields = Omit<ChickenFormValues, "purchasePrice"> & {
+  purchasePrice: string;
+};
 
 interface ChickenFormProps {
   initialValues?: Partial<ChickenFormValues>;
@@ -19,6 +32,22 @@ interface ChickenFormProps {
   onSubmit: (values: ChickenFormValues) => Promise<void>;
   loading?: boolean;
   error?: string;
+}
+
+function getDefaultValues(initialValues?: Partial<ChickenFormValues>): ChickenFormFields {
+  return {
+    name: initialValues?.name ?? "",
+    addAsBatch: initialValues?.addAsBatch ?? false,
+    quantity: initialValues?.quantity ?? BATCH_QUANTITY_MIN,
+    breed: initialValues?.breed ?? "",
+    birthDate: initialValues?.birthDate ?? defaultBirthDate,
+    status: initialValues?.status ?? "chick",
+    source: initialValues?.source ?? "purchased",
+    purchasePrice:
+      initialValues?.purchasePrice != null
+        ? String(initialValues.purchasePrice)
+        : "",
+  };
 }
 
 export function ChickenForm({
@@ -32,49 +61,85 @@ export function ChickenForm({
   loading = false,
   error,
 }: ChickenFormProps) {
-  const [name, setName] = useState(initialValues?.name ?? "");
-  const [breed, setBreed] = useState(initialValues?.breed ?? "");
-  const [birthDate, setBirthDate] = useState(
-    initialValues?.birthDate ?? new Date().toISOString().slice(0, 10),
-  );
-  const [status, setStatus] = useState(initialValues?.status ?? "chick");
-  const [source, setSource] = useState(initialValues?.source ?? "purchased");
-  const [purchasePrice, setPurchasePrice] = useState(
-    initialValues?.purchasePrice != null
-      ? String(initialValues.purchasePrice)
-      : "",
-  );
+  const { register, handleSubmit, watch, reset } = useForm<ChickenFormFields>({
+    defaultValues: getDefaultValues(initialValues),
+  });
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    await onSubmit({
-      name,
-      breed,
-      birthDate,
-      status,
-      source,
-      purchasePrice: purchasePrice === "" ? null : Number(purchasePrice),
+  useEffect(() => {
+    if (initialValues && Object.keys(initialValues).length > 0) {
+      reset(getDefaultValues(initialValues));
+    }
+  }, [initialValues, reset]);
+
+  const addAsBatch = watch("addAsBatch");
+  const source = watch("source");
+
+  const onFormSubmit = (data: ChickenFormFields) => {
+    return onSubmit({
+      name: data.name,
+      addAsBatch: addAsBatch || undefined,
+      quantity: addAsBatch ? data.quantity : undefined,
+      breed: data.breed,
+      birthDate: data.birthDate,
+      status: data.status,
+      source: data.source,
+      purchasePrice:
+        data.purchasePrice === "" ? null : Number(data.purchasePrice),
     });
-  }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+      <div className="flex items-center gap-2">
+        <input
+          id="addAsBatch"
+          type="checkbox"
+          {...register("addAsBatch")}
+          className="rounded border-gray-300"
+        />
+        <label
+          htmlFor="addAsBatch"
+          className="text-sm font-medium text-gray-700"
+        >
+          {pt.addAsBatch}
+        </label>
+      </div>
       <div>
         <label
           htmlFor="name"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          {pt.chickenName}
+          {addAsBatch ? pt.batchName : pt.chickenName}
         </label>
         <input
           id="name"
           type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
+          {...register("name", { required: true })}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
         />
       </div>
+      {addAsBatch && (
+        <div>
+          <label
+            htmlFor="quantity"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            {pt.quantity}
+          </label>
+          <input
+            id="quantity"
+            type="number"
+            min={BATCH_QUANTITY_MIN}
+            max={BATCH_QUANTITY_MAX}
+            {...register("quantity", {
+              valueAsNumber: true,
+              min: BATCH_QUANTITY_MIN,
+              max: BATCH_QUANTITY_MAX,
+            })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
+          />
+        </div>
+      )}
       <div>
         <label
           htmlFor="breed"
@@ -85,9 +150,7 @@ export function ChickenForm({
         <input
           id="breed"
           type="text"
-          value={breed}
-          onChange={(e) => setBreed(e.target.value)}
-          required
+          {...register("breed", { required: true })}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
         />
       </div>
@@ -101,9 +164,7 @@ export function ChickenForm({
         <input
           id="birthDate"
           type="date"
-          value={birthDate}
-          onChange={(e) => setBirthDate(e.target.value)}
-          required
+          {...register("birthDate", { required: true })}
           className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
         />
       </div>
@@ -116,8 +177,7 @@ export function ChickenForm({
         </label>
         <select
           id="status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          {...register("status")}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
         >
           {statusOptions.map((opt) => (
@@ -136,8 +196,7 @@ export function ChickenForm({
         </label>
         <select
           id="source"
-          value={source}
-          onChange={(e) => setSource(e.target.value)}
+          {...register("source")}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
         >
           {sourceOptions.map((opt) => (
@@ -160,8 +219,7 @@ export function ChickenForm({
             type="number"
             min={0}
             step="0.01"
-            value={purchasePrice}
-            onChange={(e) => setPurchasePrice(e.target.value)}
+            {...register("purchasePrice")}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
           />
         </div>

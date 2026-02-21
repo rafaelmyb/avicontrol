@@ -5,17 +5,27 @@ export type FeedListOrderDirection = "asc" | "desc";
 
 export interface FeedListOptions {
   feedType?: string;
+  batchName?: string;
   orderBy?: FeedListOrderBy;
   orderDirection?: FeedListOrderDirection;
   skip?: number;
   take?: number;
 }
 
+/** Minimal fields needed for restock-by-type computation (dashboard). */
+export interface RestockDataRow {
+  feedType: string;
+  weightKg: number;
+  purchaseDate: Date;
+  consumptionPerBirdGrams: number;
+}
+
 export interface IFeedInventoryRepository {
   create(data: CreateFeedInventoryInput): Promise<FeedInventoryEntity>;
   findById(id: string, userId: string): Promise<FeedInventoryEntity | null>;
   findByUserId(userId: string, options?: FeedListOptions): Promise<FeedInventoryEntity[]>;
-  countByUserId(userId: string, options?: Pick<FeedListOptions, "feedType">): Promise<number>;
+  findRestockDataByUserId(userId: string): Promise<RestockDataRow[]>;
+  countByUserId(userId: string, options?: Pick<FeedListOptions, "feedType" | "batchName">): Promise<number>;
   update(
     id: string,
     userId: string,

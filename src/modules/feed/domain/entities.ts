@@ -2,6 +2,7 @@ export interface FeedInventoryEntity {
   id: string;
   userId: string;
   name: string;
+  batchName: string | null;
   feedType: string;
   weightKg: number;
   price: number | null;
@@ -14,6 +15,7 @@ export interface FeedInventoryEntity {
 export interface CreateFeedInventoryInput {
   userId: string;
   name: string;
+  batchName?: string | null;
   feedType: string;
   weightKg: number;
   price: number | null;

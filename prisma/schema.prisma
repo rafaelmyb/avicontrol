@@ -23,6 +23,7 @@ model Chicken {
   userId      String
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
+  batchName   String?
   breed       String
   birthDate   DateTime
   status      ChickenStatus
@@ -34,6 +35,10 @@ model Chicken {
   expenses    Expense[]
 
   @@index([userId])
+  @@index([userId, createdAt])
+  @@index([userId, name])
+  @@index([userId, birthDate])
+  @@index([userId, batchName])
 }
 
 enum ChickenStatus {
@@ -66,6 +71,7 @@ model BroodCycle {
   updatedAt                DateTime @updatedAt
 
   @@index([chickenId])
+  @@index([chickenId, expectedHatchDate])
 }
 
 enum FeedType {
@@ -78,6 +84,7 @@ model FeedInventory {
   id                    String   @id @default(cuid())
   userId                String
   name                  String
+  batchName             String?
   feedType              FeedType
   weightKg              Float
   price                 Float?
@@ -88,6 +95,8 @@ model FeedInventory {
   expense               Expense?
 
   @@index([userId])
+  @@index([userId, purchaseDate])
+  @@index([userId, batchName])
 }
 
 model Expense {

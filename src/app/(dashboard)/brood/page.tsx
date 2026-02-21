@@ -1,23 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { pt } from "@/shared/i18n/pt";
 import { formatDateOnly } from "@/shared/format-date";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { EditLink, DeleteButton } from "@/components/action-icon-button";
-
-interface BroodCycleDto {
-  id: string;
-  chickenId: string;
-  startDate: string;
-  eggCount: number;
-  expectedHatchDate: string;
-  expectedReturnToLayDate: string;
-  actualHatchedCount: number | null;
-  status: string;
-}
+import { TablePagination } from "@/components/table-pagination";
+import { BroodQueries, BroodMutations } from "@/services/queries/brood";
 
 const BROOD_ORDER_OPTIONS: {
   value: "expectedHatchDate" | "startDate" | "createdAt";
@@ -31,51 +21,23 @@ const BROOD_ORDER_OPTIONS: {
 const DEFAULT_LIMIT = 10;
 
 export default function BroodPage() {
-  const queryClient = useQueryClient();
   const [orderBy, setOrderBy] = useState<
     "expectedHatchDate" | "startDate" | "createdAt"
   >("expectedHatchDate");
   const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
-  const limit = DEFAULT_LIMIT;
+  const [limit, setLimit] = useState(DEFAULT_LIMIT);
 
-  const { data: broodData, isLoading } = useQuery({
-    queryKey: ["brood", orderBy, orderDirection, page, limit],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("limit", String(limit));
-      params.set("orderBy", orderBy);
-      params.set("orderDirection", orderDirection);
-      const res = await fetch(`/api/brood?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed");
-      return res.json() as Promise<{
-        list: BroodCycleDto[];
-        total: number;
-        page: number;
-        limit: number;
-      }>;
-    },
+  const brood = BroodQueries.useLoadBroodList({
+    page,
+    limit,
+    orderBy,
+    orderDirection,
   });
+  const deleteBrood = BroodMutations.useDeleteBrood();
 
-  const broodList = broodData?.list ?? [];
-  const total = broodData?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-
-  const deleteBrood = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/brood/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? "Failed");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["brood"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["chickens"] });
-    },
-  });
+  const broodList = brood.data?.list ?? [];
+  const total = brood.data?.total ?? 0;
 
   return (
     <div className="p-6">
@@ -127,7 +89,7 @@ export default function BroodPage() {
         </select>
       </div>
 
-      {isLoading ? (
+      {brood.isLoading ? (
         <LoadingSpinner minHeight="min-h-[calc(100vh-200px)]" />
       ) : !broodList.length ? (
         <p className="text-gray-500">Nenhum ciclo de choco.</p>
@@ -198,29 +160,14 @@ export default function BroodPage() {
           </table>
         </div>
       )}
-      <div className="flex justify-end items-center gap-3 mt-3">
-        <span className="text-sm text-gray-500">
-          {total} resultado(s) · Página {broodData?.page ?? 1} de {totalPages}
-        </span>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
-          >
-            Anterior
-          </button>
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
-          >
-            Próxima
-          </button>
-        </div>
-      </div>
+      <TablePagination
+        total={total}
+        page={page}
+        limit={limit}
+        onPageChange={setPage}
+        onPageSizeChange={setLimit}
+        currentPageFromApi={brood.data?.page}
+      />
     </div>
   );
 }

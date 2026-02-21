@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { pt } from "@/shared/i18n/pt";
 import { formatDateOnly } from "@/shared/format-date";
@@ -9,16 +8,9 @@ import { FEED_TYPE_OPTIONS, getFeedTypeLabel } from "@/shared/feed-types";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { EditLink, DeleteButton } from "@/components/action-icon-button";
 import { FeedRestockCard } from "@/components/feed-restock-card";
-
-interface FeedDto {
-  id: string;
-  name: string;
-  feedType: string;
-  weightKg: number;
-  price: number | null;
-  consumptionPerBirdGrams: number;
-  purchaseDate: string;
-}
+import { TablePagination } from "@/components/table-pagination";
+import { DashboardQueries } from "@/services/queries/dashboard";
+import { FeedQueries, FeedMutations } from "@/services/queries/feed";
 
 const FEED_ORDER_OPTIONS: {
   value: "purchaseDate" | "name" | "createdAt";
@@ -32,71 +24,32 @@ const FEED_ORDER_OPTIONS: {
 const DEFAULT_LIMIT = 10;
 
 export default function FeedPage() {
-  const queryClient = useQueryClient();
   const [feedTypeFilter, setFeedTypeFilter] = useState("");
+  const [batchFilter, setBatchFilter] = useState("");
   const [orderBy, setOrderBy] = useState<"purchaseDate" | "name" | "createdAt">(
     "purchaseDate",
   );
   const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
-  const limit = DEFAULT_LIMIT;
+  const [limit, setLimit] = useState(DEFAULT_LIMIT);
 
-  const { data: feedData, isLoading } = useQuery({
-    queryKey: [
-      "feed",
-      feedTypeFilter || null,
-      orderBy,
-      orderDirection,
-      page,
-      limit,
-    ],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("limit", String(limit));
-      params.set("orderBy", orderBy);
-      params.set("orderDirection", orderDirection);
-      if (feedTypeFilter) params.set("feedType", feedTypeFilter);
-      const res = await fetch(`/api/feed?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed");
-      return res.json() as Promise<{
-        list: FeedDto[];
-        total: number;
-        page: number;
-        limit: number;
-      }>;
-    },
+  const batchNamesQuery = FeedQueries.useLoadFeedBatchNames();
+  const batchNames = batchNamesQuery.data?.batchNames ?? [];
+
+  const feed = FeedQueries.useLoadFeed({
+    feedTypeFilter: feedTypeFilter || null,
+    batchFilter: batchFilter || null,
+    orderBy,
+    orderDirection,
+    page,
+    limit,
   });
 
-  const { data: dashboardData } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: async () => {
-      const res = await fetch("/api/dashboard");
-      if (!res.ok) throw new Error("Failed");
-      return res.json() as Promise<{
-        feedRestockAlerts: {
-          feedType: string;
-          label: string;
-          date: string | null;
-        }[];
-      }>;
-    },
-  });
+  const dashboardData = DashboardQueries.useLoadDashboard();
+  const deleteFeed = FeedMutations.useDeleteFeed();
 
-  const feedList = feedData?.list ?? [];
-  const total = feedData?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-
-  const deleteFeed = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/feed/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["feed"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    },
-  });
+  const feedList = feed?.data?.list ?? [];
+  const total = feed?.data?.total ?? 0;
 
   return (
     <div className="p-6">
@@ -112,9 +65,9 @@ export default function FeedPage() {
         </Link>
       </div>
 
-      {dashboardData?.feedRestockAlerts != null && (
+      {dashboardData?.data?.feedRestockAlerts != null && (
         <div className="mb-6">
-          <FeedRestockCard alerts={dashboardData.feedRestockAlerts} />
+          <FeedRestockCard alerts={dashboardData.data.feedRestockAlerts} />
         </div>
       )}
 
@@ -134,6 +87,24 @@ export default function FeedPage() {
           {FEED_TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={batchFilter}
+          onChange={(e) => {
+            setBatchFilter(e.target.value);
+            setPage(1);
+          }}
+          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+        >
+          <option value="" disabled>
+            {pt.batch}
+          </option>
+          <option value="">Todos</option>
+          {batchNames.map((name) => (
+            <option key={name} value={name}>
+              {name}
             </option>
           ))}
         </select>
@@ -170,7 +141,7 @@ export default function FeedPage() {
         </select>
       </div>
 
-      {isLoading ? (
+      {feed?.isLoading ? (
         <LoadingSpinner minHeight="min-h-[calc(100vh-200px)]" />
       ) : !feedList.length ? (
         <p className="text-gray-500">Nenhum estoque de ração.</p>
@@ -181,6 +152,9 @@ export default function FeedPage() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   {pt.feedName}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {pt.batch}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   {pt.feedType}
@@ -206,6 +180,9 @@ export default function FeedPage() {
               {feedList.map((f) => (
                 <tr key={f.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-900">{f.name}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {f.batchName ?? "—"}
+                  </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
                     {getFeedTypeLabel(f.feedType)}
                   </td>
@@ -239,29 +216,14 @@ export default function FeedPage() {
           </table>
         </div>
       )}
-      <div className="flex justify-end items-center gap-3 mt-3">
-        <span className="text-sm text-gray-500">
-          {total} resultado(s) · Página {feedData?.page ?? 1} de {totalPages}
-        </span>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
-          >
-            Anterior
-          </button>
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-50"
-          >
-            Próxima
-          </button>
-        </div>
-      </div>
+      <TablePagination
+        total={total}
+        page={page}
+        limit={limit}
+        onPageChange={setPage}
+        onPageSizeChange={setLimit}
+        currentPageFromApi={feed?.data?.page}
+      />
     </div>
   );
 }

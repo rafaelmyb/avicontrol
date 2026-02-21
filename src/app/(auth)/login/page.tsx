@@ -1,39 +1,40 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import { useForm } from "react-hook-form";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { pt } from "@/shared/i18n/pt";
 import { LoadingSpinner } from "@/components/loading-spinner";
 
+type LoginFields = {
+  email: string;
+  password: string;
+};
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const { register, handleSubmit, formState } = useForm<LoginFields>({
+    defaultValues: { email: "", password: "" },
+  });
+
+  async function onSubmit(data: LoginFields) {
     setError("");
-    setLoading(true);
-    try {
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-      if (res?.error) {
-        setError(pt.invalidCredentials);
-        return;
-      }
-      router.push(callbackUrl);
-      router.refresh();
-    } finally {
-      setLoading(false);
+    const res = await signIn("credentials", {
+      email: data.email,
+      password: data.password,
+      redirect: false,
+    });
+    if (res?.error) {
+      setError(pt.invalidCredentials);
+      return;
     }
+    router.push(callbackUrl);
+    router.refresh();
   }
 
   return (
@@ -42,7 +43,7 @@ function LoginForm() {
         <h1 className="text-xl font-semibold text-gray-900 mb-6">
           {pt.appName}
         </h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label
               htmlFor="email"
@@ -53,9 +54,7 @@ function LoginForm() {
             <input
               id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              {...register("email", { required: true })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
               placeholder="seu@email.com"
             />
@@ -70,19 +69,17 @@ function LoginForm() {
             <input
               id="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              {...register("password", { required: true })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
             />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="submit"
-            disabled={loading}
+            disabled={formState.isSubmitting}
             className="w-full py-2 px-4 bg-gray-900 text-white rounded-md hover:bg-gray-800 disabled:opacity-50"
           >
-            {loading ? pt.loading : pt.login}
+            {formState.isSubmitting ? pt.loading : pt.login}
           </button>
         </form>
         <p className="mt-4 text-sm text-gray-600">

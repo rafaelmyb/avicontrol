@@ -1,13 +1,13 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { pt } from "@/shared/i18n/pt";
 import { ChickenForm } from "@/modules/chicken/presentation/chicken-form";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { DeleteButton } from "@/components/action-icon-button";
 import { FormPageHeader } from "@/components/form-page-header";
+import { ChickenQueries, ChickenMutations } from "@/services/queries/chickens";
 
 const statusOptions = [
   { value: "chick", label: pt.chick },
@@ -23,70 +23,21 @@ const statusOptions = [
 export default function ChickenDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const id = params.id as string;
 
-  const {
-    data: chicken,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["chickens", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/chickens/${id}`);
-      if (!res.ok) throw new Error("Not found");
-      return res.json();
-    },
-    enabled: !!id,
-  });
+  const chickenQuery = ChickenQueries.useLoadChicken(id);
+  const chicken = chickenQuery.data;
+  const updateChicken = ChickenMutations.useUpdateChicken(id);
+  const deleteChicken = ChickenMutations.useDeleteChicken();
 
-  const update = useMutation({
-    mutationFn: async (body: {
-      name: string;
-      breed: string;
-      birthDate: string;
-      status: string;
-      source: string;
-      purchasePrice?: number | null;
-    }) => {
-      const res = await fetch(`/api/chickens/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? "Failed");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["chickens"] });
-      queryClient.invalidateQueries({ queryKey: ["chickens", id] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/chickens/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["chickens"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      router.push("/chickens");
-    },
-  });
-
-  if (isLoading || !chicken) {
+  if (chickenQuery.isLoading || !chicken) {
     return (
       <div className="p-6">
         <LoadingSpinner />
       </div>
     );
   }
-  if (error) {
+  if (chickenQuery.error) {
     return (
       <div className="p-6">
         <p className="text-red-600">{pt.error}</p>
@@ -117,18 +68,18 @@ export default function ChickenDetailPage() {
           purchasePrice: chicken.purchasePrice ?? null,
         }}
         statusOptions={statusOptions}
-        onSubmit={(values) =>
-          update.mutateAsync({
+        onSubmit={async (values) => {
+          await updateChicken.mutateAsync({
             name: values.name,
             breed: values.breed,
             birthDate: values.birthDate,
             status: values.status,
             source: values.source,
             purchasePrice: values.purchasePrice ?? null,
-          })
-        }
-        loading={update.isPending}
-        error={update.error?.message}
+          });
+        }}
+        loading={updateChicken.isPending}
+        error={updateChicken.error?.message}
       />
       <div className="mt-6 pt-4 border-t border-gray-200">
         <p className="text-sm text-gray-500 mb-2">
@@ -141,9 +92,11 @@ export default function ChickenDetailPage() {
         <DeleteButton
           onClick={() => {
             if (window.confirm("Excluir esta galinha?"))
-              deleteMutation.mutate();
+              deleteChicken.mutate(id, {
+                onSuccess: () => router.push("/chickens"),
+              });
           }}
-          disabled={deleteMutation.isPending}
+          disabled={deleteChicken.isPending}
         />
       </div>
     </div>

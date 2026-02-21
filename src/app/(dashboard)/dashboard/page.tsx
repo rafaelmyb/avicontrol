@@ -1,67 +1,23 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-// import {
-//   BarChart,
-//   Bar,
-//   XAxis,
-//   YAxis,
-//   CartesianGrid,
-//   Tooltip,
-//   ResponsiveContainer,
-//   LineChart,
-//   Line,
-// } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+} from "recharts";
 import { pt } from "@/shared/i18n/pt";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { FeedRestockCard } from "@/components/feed-restock-card";
-
-interface ChartPoint {
-  month: string;
-  count?: number;
-  eggs?: number;
-  revenue?: number;
-  profit?: number;
-}
-
-interface DashboardCharts {
-  chickenGrowth: ChartPoint[];
-  monthlyEggs: ChartPoint[];
-  monthlyRevenue: ChartPoint[];
-  monthlyProfit: ChartPoint[];
-}
-
-interface FeedRestockAlertItem {
-  feedType: string;
-  label: string;
-  date: string | null;
-}
-
-interface DashboardData {
-  totalChickens: number;
-  layingChickens: number;
-  broodingChickens: number;
-  estimatedMonthlyEggs: number | null;
-  monthlyExpenses: number;
-  monthlyRevenue: number;
-  estimatedEggRevenue: number;
-  monthlyRevenueWithEggs: number;
-  monthlyProfit: number;
-  feedRestockAlerts: FeedRestockAlertItem[];
-  upcomingBroodEvents: { id: string; chickenName: string; date: string }[];
-  charts?: DashboardCharts;
-}
+import { DashboardQueries } from "@/services/queries/dashboard";
 
 export default function DashboardPage() {
-  const { data, isLoading, error } = useQuery<DashboardData>({
-    queryKey: ["dashboard"],
-    queryFn: async () => {
-      const res = await fetch("/api/dashboard");
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
-    },
-    refetchOnMount: "always",
-  });
+  const { data, isLoading, error } = DashboardQueries.useLoadDashboard();
 
   if (isLoading) {
     return (
@@ -112,7 +68,7 @@ export default function DashboardPage() {
         <FeedRestockCard alerts={data.feedRestockAlerts} />
       </div>
 
-      {/* {data.charts && (
+      {data.charts && (
         <div className="mt-6 grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <h2 className="text-sm font-medium text-gray-700 mb-3">
@@ -224,7 +180,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      )} */}
+      )}
 
       {data.upcomingBroodEvents.length > 0 && (
         <div className="mt-6">

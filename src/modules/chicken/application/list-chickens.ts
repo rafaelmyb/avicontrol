@@ -6,6 +6,7 @@ export interface ChickenDto {
   id: string;
   userId: string;
   name: string;
+  batchName: string | null;
   breed: string;
   birthDate: string;
   status: string;
@@ -22,7 +23,10 @@ export async function listChickensByUser(
   userId: string,
   options?: ChickenListOptions
 ): Promise<{ chickens: ChickenDto[]; total: number }> {
-  const countFilter = options?.status ? { status: options.status } : undefined;
+  const countFilter =
+    options?.status || options?.batchName
+      ? { status: options.status, batchName: options.batchName }
+      : undefined;
   const [chickens, total] = await Promise.all([
     repo.findByUserId(userId, options),
     repo.countByUserId(userId, countFilter),
@@ -32,6 +36,7 @@ export async function listChickensByUser(
     id: c.id,
     userId: c.userId,
     name: c.name,
+    batchName: c.batchName,
     breed: c.breed,
     birthDate: c.birthDate.toISOString(),
     status: c.status,

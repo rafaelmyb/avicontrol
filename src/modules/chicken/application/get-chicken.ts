@@ -6,6 +6,7 @@ export interface ChickenDto {
   id: string;
   userId: string;
   name: string;
+  batchName: string | null;
   breed: string;
   birthDate: string;
   status: string;
@@ -29,6 +30,7 @@ export async function getChicken(
     id: entity.id,
     userId: entity.userId,
     name: entity.name,
+    batchName: entity.batchName,
     breed: entity.breed,
     birthDate: entity.birthDate.toISOString(),
     status: entity.status,

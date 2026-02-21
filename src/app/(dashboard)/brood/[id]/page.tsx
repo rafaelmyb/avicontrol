@@ -2,102 +2,62 @@
 
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { pt } from "@/shared/i18n/pt";
 import { formatDateOnly } from "@/shared/format-date";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { DeleteButton } from "@/components/action-icon-button";
 import { FormPageHeader } from "@/components/form-page-header";
+import { BroodQueries, BroodMutations } from "@/services/queries/brood";
 
-interface BroodCycleDto {
-  id: string;
-  chickenId: string;
-  startDate: string;
-  eggCount: number;
-  expectedHatchDate: string;
-  expectedReturnToLayDate: string;
-  actualHatchedCount: number | null;
+type BroodEditFields = {
+  actualHatchedCount: number | "";
   status: string;
-  createdAt: string;
-  updatedAt: string;
-}
+};
 
 export default function BroodDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const id = params.id as string;
 
-  const {
-    data: cycle,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["brood", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/brood/${id}`);
-      if (!res.ok) throw new Error("Not found");
-      return res.json() as Promise<BroodCycleDto>;
-    },
-    enabled: !!id,
+  const brood = BroodQueries.useLoadBrood(id);
+  const updateBrood = BroodMutations.useUpdateBrood(id);
+  const deleteBrood = BroodMutations.useDeleteBrood();
+
+  const { register, handleSubmit, reset } = useForm<BroodEditFields>({
+    defaultValues: { actualHatchedCount: "", status: "" },
   });
 
-  const [actualHatchedCount, setActualHatchedCount] = useState<number | "">("");
-  const [status, setStatus] = useState("");
+  const cycle = brood.data;
 
   useEffect(() => {
     if (cycle) {
-      setActualHatchedCount(cycle.actualHatchedCount ?? "");
-      setStatus(cycle.status);
-    }
-  }, [cycle]);
-
-  const update = useMutation({
-    mutationFn: async (body: {
-      actualHatchedCount?: number;
-      status?: string;
-    }) => {
-      const res = await fetch(`/api/brood/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      reset({
+        actualHatchedCount: cycle.actualHatchedCount ?? "",
+        status: cycle.status ?? "",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? "Failed");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["brood"] });
-      queryClient.invalidateQueries({ queryKey: ["brood", id] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["chickens"] });
-    },
-  });
+    }
+  }, [cycle, reset]);
 
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/brood/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["brood"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["chickens"] });
-      router.push("/brood");
-    },
-  });
+  const onSubmit = (data: BroodEditFields) => {
+    updateBrood.mutate({
+      actualHatchedCount:
+        data.actualHatchedCount === ""
+          ? undefined
+          : Number(data.actualHatchedCount),
+      status: data.status || undefined,
+    });
+  };
 
-  if (isLoading || !cycle) {
+  if (brood.isLoading || !cycle) {
     return (
       <div className="p-6">
         <LoadingSpinner />
       </div>
     );
   }
-  if (error) {
+  if (brood.error) {
     return (
       <div className="p-6">
         <p className="text-red-600">{pt.error}</p>
@@ -110,15 +70,6 @@ export default function BroodDetailPage() {
       </div>
     );
   }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    update.mutate({
-      actualHatchedCount:
-        actualHatchedCount === "" ? undefined : Number(actualHatchedCount),
-      status: status || undefined,
-    });
-  };
 
   return (
     <div className="p-6 max-w-lg mx-auto">
@@ -151,7 +102,7 @@ export default function BroodDetailPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             {pt.actualHatchedCount}
@@ -159,12 +110,9 @@ export default function BroodDetailPage() {
           <input
             type="number"
             min={0}
-            value={actualHatchedCount === "" ? "" : actualHatchedCount}
-            onChange={(e) =>
-              setActualHatchedCount(
-                e.target.value === "" ? "" : Number(e.target.value),
-              )
-            }
+            {...register("actualHatchedCount", {
+              setValueAs: (v) => (v === "" || v === undefined ? "" : Number(v)),
+            })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
@@ -174,29 +122,30 @@ export default function BroodDetailPage() {
           </label>
           <input
             type="text"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            {...register("status")}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
             placeholder="ex: active, hatched, completed"
           />
         </div>
-        {update.error && (
-          <p className="text-sm text-red-600">{update.error.message}</p>
+        {updateBrood.error && (
+          <p className="text-sm text-red-600">{updateBrood.error.message}</p>
         )}
         <div className="flex gap-2">
           <button
             type="submit"
-            disabled={update.isPending}
+            disabled={updateBrood.isPending}
             className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 disabled:opacity-50"
           >
-            {update.isPending ? pt.loading : pt.save}
+            {updateBrood.isPending ? pt.loading : pt.save}
           </button>
           <DeleteButton
             onClick={() => {
               if (window.confirm("Excluir este ciclo de choco?"))
-                deleteMutation.mutate();
+                deleteBrood.mutate(id, {
+                  onSuccess: () => router.push("/brood"),
+                });
             }}
-            disabled={deleteMutation.isPending}
+            disabled={deleteBrood.isPending}
             className="p-2"
           />
         </div>

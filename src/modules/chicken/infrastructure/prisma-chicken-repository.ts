@@ -19,6 +19,7 @@ function toEntity(row: {
   id: string;
   userId: string;
   name: string;
+  batchName: string | null;
   breed: string;
   birthDate: Date;
   status: PrismaStatus;
@@ -31,6 +32,7 @@ function toEntity(row: {
     id: row.id,
     userId: row.userId,
     name: row.name,
+    batchName: row.batchName,
     breed: row.breed,
     birthDate: row.birthDate,
     status: toDomainStatus(row.status),
@@ -47,6 +49,7 @@ export class PrismaChickenRepository implements IChickenRepository {
       data: {
         userId: data.userId,
         name: data.name,
+        batchName: data.batchName ?? null,
         breed: data.breed,
         birthDate: data.birthDate,
         status: data.status as PrismaStatus,
@@ -68,9 +71,12 @@ export class PrismaChickenRepository implements IChickenRepository {
     userId: string,
     options?: ChickenListOptions
   ): Promise<ChickenEntity[]> {
-    const where: { userId: string; status?: PrismaStatus } = { userId };
+    const where: { userId: string; status?: PrismaStatus; batchName?: string } = { userId };
     if (options?.status) {
       where.status = options.status as PrismaStatus;
+    }
+    if (options?.batchName) {
+      where.batchName = options.batchName;
     }
     const orderBy = (options?.orderBy ?? "createdAt") as "createdAt" | "name" | "birthDate";
     const orderDirection = options?.orderDirection ?? "desc";
@@ -85,11 +91,14 @@ export class PrismaChickenRepository implements IChickenRepository {
 
   async countByUserId(
     userId: string,
-    options?: Pick<ChickenListOptions, "status">
+    options?: Pick<ChickenListOptions, "status" | "batchName">
   ): Promise<number> {
-    const where: { userId: string; status?: PrismaStatus } = { userId };
+    const where: { userId: string; status?: PrismaStatus; batchName?: string } = { userId };
     if (options?.status) {
       where.status = options.status as PrismaStatus;
+    }
+    if (options?.batchName) {
+      where.batchName = options.batchName;
     }
     return prisma.chicken.count({ where });
   }

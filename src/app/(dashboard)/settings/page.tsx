@@ -1,66 +1,48 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { pt } from "@/shared/i18n/pt";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { SettingsQueries, SettingsMutations } from "@/services/queries/settings";
 
-interface SettingsData {
-  eggPricePerUnit: number | null;
-}
+type SettingsFields = {
+  eggPricePerUnit: string;
+};
 
 export default function SettingsPage() {
-  const queryClient = useQueryClient();
-  const [eggPrice, setEggPrice] = useState<string>("");
+  const settings = SettingsQueries.useLoadSettings();
+  const updateSettings = SettingsMutations.useUpdateSettings();
 
-  const { data, isLoading, error } = useQuery<SettingsData>({
-    queryKey: ["settings"],
-    queryFn: async () => {
-      const res = await fetch("/api/settings");
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
-    },
+  const { register, handleSubmit, reset } = useForm<SettingsFields>({
+    defaultValues: { eggPricePerUnit: "" },
   });
 
   useEffect(() => {
-    if (data?.eggPricePerUnit != null) {
-      setEggPrice(String(data.eggPricePerUnit));
+    if (settings.data?.eggPricePerUnit != null) {
+      reset({ eggPricePerUnit: String(settings.data.eggPricePerUnit) });
     } else {
-      setEggPrice("");
+      reset({ eggPricePerUnit: "" });
     }
-  }, [data?.eggPricePerUnit]);
+  }, [settings.data?.eggPricePerUnit, reset]);
 
-  const updateSettings = useMutation({
-    mutationFn: async (body: { eggPricePerUnit: number | null }) => {
-      const res = await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error("Failed to update");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const value = eggPrice.trim() === "" ? null : Number(eggPrice);
+  const onSubmit = (data: SettingsFields) => {
+    const value =
+      data.eggPricePerUnit.trim() === ""
+        ? null
+        : Number(data.eggPricePerUnit);
     if (value !== null && (Number.isNaN(value) || value < 0)) return;
     updateSettings.mutate({ eggPricePerUnit: value });
   };
 
-  if (isLoading) {
+  if (settings.isLoading) {
     return (
       <div className="p-6">
         <LoadingSpinner />
       </div>
     );
   }
-  if (error || !data) {
+  if (settings.error || !settings.data) {
     return (
       <div className="p-6">
         <p className="text-red-600">{pt.error}</p>
@@ -73,7 +55,10 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-semibold text-gray-900 mb-6">
         {pt.settings}
       </h1>
-      <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-4">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="max-w-md mx-auto space-y-4"
+      >
         <div>
           <label
             htmlFor="eggPricePerUnit"
@@ -86,8 +71,7 @@ export default function SettingsPage() {
             type="number"
             step={0.01}
             min={0}
-            value={eggPrice}
-            onChange={(e) => setEggPrice(e.target.value)}
+            {...register("eggPricePerUnit")}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
             placeholder="0,00"
           />

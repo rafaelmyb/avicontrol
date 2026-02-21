@@ -37,6 +37,7 @@ export async function GET(request: Request) {
   const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 10));
   const skip = (page - 1) * limit;
   const feedType = searchParams.get("feedType") ?? undefined;
+  const batchName = searchParams.get("batchName") ?? undefined;
   const orderBy = (searchParams.get("orderBy") as "purchaseDate" | "name" | "createdAt") || "purchaseDate";
   const orderDirection = (searchParams.get("orderDirection") as "asc" | "desc") || "desc";
 
@@ -49,6 +50,7 @@ export async function GET(request: Request) {
     skip,
     take: limit,
     feedType,
+    batchName,
     orderBy,
     orderDirection,
   });

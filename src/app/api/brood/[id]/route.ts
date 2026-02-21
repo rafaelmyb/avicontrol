@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
 import { PrismaBroodCycleRepository } from "@/modules/brood/infrastructure/prisma-brood-repository";
 import { PrismaChickenRepository } from "@/modules/chicken/infrastructure/prisma-chicken-repository";
 import { getBroodCycle } from "@/modules/brood/application/get-brood-cycle";
@@ -56,9 +55,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
-  const cycle = await prisma.broodCycle.findFirst({
-    where: { id, chicken: { userId: session.user.id } },
-  });
+  const repo = new PrismaBroodCycleRepository();
+  const chickenRepo = new PrismaChickenRepository();
+  const cycle = await getBroodCycle(repo, id, session.user.id);
   if (!cycle) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -71,8 +70,6 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    const repo = new PrismaBroodCycleRepository();
-    const chickenRepo = new PrismaChickenRepository();
     const updated = await updateBroodCycle(
       repo,
       id,

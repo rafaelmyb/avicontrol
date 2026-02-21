@@ -1,4 +1,4 @@
-import type { IFeedInventoryRepository } from "../domain/repository";
+import type { IFeedInventoryRepository, RestockDataRow } from "../domain/repository";
 import {
   dailyConsumptionGrams,
   durationDays,
@@ -35,18 +35,16 @@ const FEED_TYPE_TO_BIRD_COUNT = (
 });
 
 /**
- * Compute restock date per feed type. One entry per type (pré-inicial, crescimento, postura).
- * Uses most recent purchaseDate per type and sum of weightKg per type.
+ * Compute restock date per feed type from minimal data (e.g. from findRestockDataByUserId).
+ * Use this in the dashboard to avoid loading full feed rows.
  */
-export async function computeRestockByFeedType(
-  repo: IFeedInventoryRepository,
-  userId: string,
+export function computeRestockByFeedTypeFromData(
+  list: RestockDataRow[],
   counts: RestockByTypeInput
-): Promise<RestockAlertByType[]> {
-  const list = await repo.findByUserId(userId);
+): RestockAlertByType[] {
   const birdByType = FEED_TYPE_TO_BIRD_COUNT(counts);
 
-  const result: RestockAlertByType[] = FEED_TYPE_VALUES.map((feedType) => {
+  return FEED_TYPE_VALUES.map((feedType) => {
     const rows = list.filter((f) => f.feedType === feedType);
     const birdCount = birdByType[feedType];
     const label = FEED_TYPE_LABELS[feedType];
@@ -72,8 +70,19 @@ export async function computeRestockByFeedType(
       date: restock.toISOString(),
     };
   });
+}
 
-  return result;
+/**
+ * Compute restock date per feed type. One entry per type (pré-inicial, crescimento, postura).
+ * Uses most recent purchaseDate per type and sum of weightKg per type.
+ */
+export async function computeRestockByFeedType(
+  repo: IFeedInventoryRepository,
+  userId: string,
+  counts: RestockByTypeInput
+): Promise<RestockAlertByType[]> {
+  const list = await repo.findByUserId(userId);
+  return computeRestockByFeedTypeFromData(list, counts);
 }
 
 /**

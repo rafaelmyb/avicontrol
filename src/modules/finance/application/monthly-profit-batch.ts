@@ -15,43 +15,50 @@ export async function getMonthlyProfitBatch(
   userId: string,
   referenceDate: Date
 ): Promise<MonthlyProfitBatchResult> {
-  const startOfRange = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 11, 1, 0, 0, 0, 0);
+  const startOfRange = new Date(
+    Date.UTC(referenceDate.getUTCFullYear(), referenceDate.getUTCMonth() - 11, 1, 0, 0, 0, 0)
+  );
 
   type Row = { month: Date; sum: number };
   const [revenueRows, expenseRows] = await Promise.all([
     prisma.$queryRaw<Row[]>`
-      SELECT date_trunc('month', date)::date AS month, COALESCE(SUM(amount), 0) AS sum
+      SELECT date_trunc('month', "date")::date AS month, COALESCE(SUM(amount), 0) AS sum
       FROM "Revenue"
-      WHERE "userId" = ${userId} AND date >= ${startOfRange}
-      GROUP BY date_trunc('month', date)
+      WHERE "userId" = ${userId} AND "date" >= ${startOfRange}
+      GROUP BY date_trunc('month', "date")
     `,
     prisma.$queryRaw<Row[]>`
-      SELECT date_trunc('month', date)::date AS month, COALESCE(SUM(amount), 0) AS sum
+      SELECT date_trunc('month', "date")::date AS month, COALESCE(SUM(amount), 0) AS sum
       FROM "Expense"
-      WHERE "userId" = ${userId} AND date >= ${startOfRange}
-      GROUP BY date_trunc('month', date)
+      WHERE "userId" = ${userId} AND "date" >= ${startOfRange}
+      GROUP BY date_trunc('month', "date")
     `,
   ]);
+
+  const monthKey = (d: Date) =>
+    `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`;
 
   const revenueByKey = new Map<string, number>();
   for (const r of revenueRows) {
     const d = r.month instanceof Date ? r.month : new Date(r.month);
-    const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
-    revenueByKey.set(key, Number(r.sum));
+    revenueByKey.set(monthKey(d), Number(r.sum));
   }
   const expenseByKey = new Map<string, number>();
   for (const e of expenseRows) {
     const d = e.month instanceof Date ? e.month : new Date(e.month);
-    const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
-    expenseByKey.set(key, Number(e.sum));
+    expenseByKey.set(monthKey(d), Number(e.sum));
   }
 
   const byMonth: MonthlyProfitResult[] = [];
   for (let i = 11; i >= 0; i--) {
-    const d = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - i, 1);
-    const year = d.getFullYear();
-    const month = d.getMonth() + 1;
-    const key = `${year}-${month}`;
+    const d = new Date(
+      Date.UTC(
+        referenceDate.getUTCFullYear(),
+        referenceDate.getUTCMonth() - i,
+        1
+      )
+    );
+    const key = monthKey(d);
     const totalRevenue = revenueByKey.get(key) ?? 0;
     const totalExpenses = expenseByKey.get(key) ?? 0;
     byMonth.push({
@@ -61,9 +68,7 @@ export async function getMonthlyProfitBatch(
     });
   }
 
-  const currentYear = referenceDate.getFullYear();
-  const currentMonth = referenceDate.getMonth() + 1;
-  const currentKey = `${currentYear}-${currentMonth}`;
+  const currentKey = monthKey(referenceDate);
   const currentRevenue = revenueByKey.get(currentKey) ?? 0;
   const currentExpenses = expenseByKey.get(currentKey) ?? 0;
   const currentMonthResult: MonthlyProfitResult = {

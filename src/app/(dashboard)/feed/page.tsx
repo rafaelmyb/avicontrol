@@ -7,6 +7,7 @@ import { formatDateOnly } from "@/shared/format-date";
 import { FEED_TYPE_OPTIONS, getFeedTypeLabel } from "@/shared/feed-types";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { EditLink, DeleteButton } from "@/components/action-icon-button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FeedRestockCard } from "@/components/feed-restock-card";
 import { TablePagination } from "@/components/table-pagination";
 import { DashboardQueries } from "@/services/queries/dashboard";
@@ -32,6 +33,7 @@ export default function FeedPage() {
   const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
+  const [pendingFeed, setPendingFeed] = useState<{ id: string } | null>(null);
 
   const batchNamesQuery = FeedQueries.useLoadFeedBatchNames();
   const batchNames = batchNamesQuery.data?.batchNames ?? [];
@@ -202,10 +204,7 @@ export default function FeedPage() {
                     <span className="inline-flex items-center gap-0.5">
                       <EditLink href={`/feed/${f.id}`} />
                       <DeleteButton
-                        onClick={() => {
-                          if (window.confirm("Excluir esta ração?"))
-                            deleteFeed.mutate(f.id);
-                        }}
+                        onClick={() => setPendingFeed(f)}
                         disabled={deleteFeed.isPending}
                       />
                     </span>
@@ -223,6 +222,19 @@ export default function FeedPage() {
         onPageChange={setPage}
         onPageSizeChange={setLimit}
         currentPageFromApi={feed?.data?.page}
+      />
+      <ConfirmDialog
+        open={!!pendingFeed}
+        onOpenChange={(o) => !o && setPendingFeed(null)}
+        title={pt.deleteFeedConfirm}
+        description={pt.deleteConfirmDescription}
+        confirmLabel={pt.delete}
+        onConfirm={async () => {
+          if (pendingFeed) await deleteFeed.mutateAsync(pendingFeed.id);
+          setPendingFeed(null);
+        }}
+        loading={deleteFeed.isPending}
+        variant="destructive"
       />
     </div>
   );

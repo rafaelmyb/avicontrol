@@ -1,15 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { pt } from "@/shared/i18n/pt";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   IconDashboard,
   IconPets,
   IconEgg,
   IconRestaurant,
   IconAttachMoney,
+  IconAssessment,
   IconSettings,
   IconLogout,
 } from "@/components/icons/material-sidebar-icons";
@@ -27,6 +31,7 @@ const ICON_SIZE = 22;
 
 const nav = [
   { href: "/dashboard", label: pt.dashboard, icon: IconDashboard },
+  { href: "/reports", label: pt.reports, icon: IconAssessment },
   { href: "/chickens", label: pt.chickens, icon: IconPets },
   { href: "/brood", label: pt.brood, icon: IconEgg },
   { href: "/feed", label: pt.feed, icon: IconRestaurant },
@@ -42,15 +47,16 @@ export function DashboardSidebar({
   onToggleCollapse,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const overlayClasses = !isLg
-    ? `fixed top-0 left-0 z-40 h-full w-56 bg-white border-r border-gray-200 flex flex-col min-h-screen transition-transform duration-200 ease-out ${
+    ? `fixed top-0 left-0 z-40 h-screen w-56 bg-white border-r border-gray-200 flex flex-col overflow-hidden transition-transform duration-200 ease-out ${
         open ? "translate-x-0" : "-translate-x-full"
       }`
     : "";
 
   const desktopClasses = isLg
-    ? `flex flex-col min-h-screen bg-white border-r border-gray-200 shrink-0 transition-[width] duration-200 ${
+    ? `flex flex-col h-full bg-white border-r border-gray-200 shrink-0 transition-[width] duration-200 ${
         collapsed ? "w-16" : "w-56"
       }`
     : "";
@@ -59,28 +65,44 @@ export function DashboardSidebar({
 
   return (
     <aside className={asideClassName}>
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between gap-2">
+      <div className="relative shrink-0 p-4 border-b border-gray-200 flex items-center justify-between gap-2">
         {collapsed && isLg ? (
           <Link
             href="/dashboard"
-            className="font-semibold text-gray-900 text-lg leading-none"
+            className="flex items-center min-w-8 shrink"
             title={pt.appName}
           >
-            A
+            <Image
+              src="/icon.png"
+              alt={pt.appName}
+              width={32}
+              height={32}
+              className="object-cover object-left h-9"
+              priority
+            />
           </Link>
         ) : (
           <Link
             href="/dashboard"
-            className="font-semibold text-gray-900 truncate"
+            className="flex items-center min-w-0 shrink"
+            title={pt.appName}
           >
-            {pt.appName}
+            <Image
+              src="/logo.png"
+              alt={pt.appName}
+              width={140}
+              height={36}
+              className="object-cover object-left h-9"
+              priority
+            />
           </Link>
         )}
+
         {isLg ? (
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 shrink-0"
+            className={`p-1.5 rounded-md text-gray-500 hover:bg-gray-100 shrink-0 ${collapsed && "absolute right-[-16px] top-4"}`}
             aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
           >
             {collapsed ? (
@@ -136,7 +158,7 @@ export function DashboardSidebar({
           </button>
         )}
       </div>
-      <nav className="flex-1 p-2">
+      <nav className="flex-1 overflow-y-auto min-h-0 p-2">
         {nav.map((item) => {
           const Icon = item.icon;
           return (
@@ -158,7 +180,7 @@ export function DashboardSidebar({
         })}
       </nav>
       <div
-        className="p-2 border-t border-gray-200 space-y-0.5"
+        className="shrink-0 p-2 border-t border-gray-200 space-y-0.5"
         style={{
           paddingBottom: !isLg
             ? "calc(env(safe-area-inset-bottom) + 8rem)"
@@ -187,7 +209,7 @@ export function DashboardSidebar({
         </Link>
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => setLogoutDialogOpen(true)}
           title={pt.logout}
           aria-label={pt.logout}
           className={`w-full flex items-center rounded-md text-sm text-gray-600 hover:bg-gray-50 ${
@@ -199,6 +221,14 @@ export function DashboardSidebar({
           <IconLogout className="shrink-0" size={ICON_SIZE} />
           {!(collapsed && isLg) && pt.logout}
         </button>
+        <ConfirmDialog
+          open={logoutDialogOpen}
+          onOpenChange={setLogoutDialogOpen}
+          title={pt.logoutConfirmTitle}
+          description={pt.logoutConfirmDescription}
+          confirmLabel={pt.logout}
+          onConfirm={() => signOut({ callbackUrl: "/login" })}
+        />
       </div>
     </aside>
   );

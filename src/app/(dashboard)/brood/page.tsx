@@ -6,6 +6,7 @@ import { pt } from "@/shared/i18n/pt";
 import { formatDateOnly } from "@/shared/format-date";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { EditLink, DeleteButton } from "@/components/action-icon-button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { TablePagination } from "@/components/table-pagination";
 import { BroodQueries, BroodMutations } from "@/services/queries/brood";
 
@@ -27,6 +28,7 @@ export default function BroodPage() {
   const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
+  const [pendingBrood, setPendingBrood] = useState<{ id: string } | null>(null);
 
   const brood = BroodQueries.useLoadBroodList({
     page,
@@ -146,10 +148,7 @@ export default function BroodPage() {
                     <span className="inline-flex items-center gap-0.5">
                       <EditLink href={`/brood/${b.id}`} />
                       <DeleteButton
-                        onClick={() => {
-                          if (window.confirm("Excluir este ciclo de choco?"))
-                            deleteBrood.mutate(b.id);
-                        }}
+                        onClick={() => setPendingBrood(b)}
                         disabled={deleteBrood.isPending}
                       />
                     </span>
@@ -167,6 +166,19 @@ export default function BroodPage() {
         onPageChange={setPage}
         onPageSizeChange={setLimit}
         currentPageFromApi={brood.data?.page}
+      />
+      <ConfirmDialog
+        open={!!pendingBrood}
+        onOpenChange={(o) => !o && setPendingBrood(null)}
+        title={pt.deleteBroodConfirm}
+        description={pt.deleteConfirmDescription}
+        confirmLabel={pt.delete}
+        onConfirm={async () => {
+          if (pendingBrood) await deleteBrood.mutateAsync(pendingBrood.id);
+          setPendingBrood(null);
+        }}
+        loading={deleteBrood.isPending}
+        variant="destructive"
       />
     </div>
   );

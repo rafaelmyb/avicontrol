@@ -1,18 +1,3 @@
-export type ChartPoint = {
-  month: string;
-  count?: number;
-  eggs?: number;
-  revenue?: number;
-  profit?: number;
-};
-
-export type DashboardCharts = {
-  chickenGrowth: ChartPoint[];
-  monthlyEggs: ChartPoint[];
-  monthlyRevenue: ChartPoint[];
-  monthlyProfit: ChartPoint[];
-};
-
 export type FeedRestockAlertItem = {
   feedType: string;
   label: string;
@@ -32,7 +17,6 @@ export type DashboardData = {
   monthlyProfit: number;
   feedRestockAlerts: FeedRestockAlertItem[];
   upcomingBroodEvents: { id: string; chickenName: string; date: string }[];
-  charts?: DashboardCharts;
 };
 
 export const loadDashboard = async (): Promise<DashboardData> => {

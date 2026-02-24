@@ -5,10 +5,12 @@ import { useState } from "react";
 import { pt } from "@/shared/i18n/pt";
 import { formatDateOnly } from "@/shared/format-date";
 import { EditLink, DeleteButton } from "@/components/action-icon-button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { TablePagination } from "@/components/table-pagination";
 import { DashboardQueries } from "@/services/queries/dashboard";
 import { ExpenseQueries, ExpenseMutations } from "@/services/queries/expenses";
 import { RevenueQueries, RevenueMutations } from "@/services/queries/revenue";
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 function getMonthRange() {
   const now = new Date();
@@ -33,53 +35,53 @@ export default function FinancePage() {
   const [tab, setTab] = useState<"expenses" | "revenue">("expenses");
   const { start, end } = getMonthRange();
 
-  const dashboardData = DashboardQueries.useLoadDashboard();
+  const dashboard = DashboardQueries.useLoadDashboard();
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">
+      <h1 className="flex w-full justify-between items-center flex-row gap-2 text-2xl font-semibold text-gray-900 mb-6">
         {pt.finance}
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setTab("expenses")}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              tab === "expenses"
+                ? "bg-gray-900 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {pt.expenses}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("revenue")}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              tab === "revenue"
+                ? "bg-gray-900 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {pt.revenue}
+          </button>
+        </div>
       </h1>
 
-      <div className="flex gap-2 mb-6">
-        <button
-          type="button"
-          onClick={() => setTab("expenses")}
-          className={`px-4 py-2 rounded-md text-sm font-medium ${
-            tab === "expenses"
-              ? "bg-gray-900 text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          {pt.expenses}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("revenue")}
-          className={`px-4 py-2 rounded-md text-sm font-medium ${
-            tab === "revenue"
-              ? "bg-gray-900 text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          {pt.revenue}
-        </button>
-      </div>
-
-      {tab === "expenses" && (
-        <ExpenseSection start={start} end={end} />
-      )}
+      {tab === "expenses" && <ExpenseSection start={start} end={end} />}
       {tab === "revenue" && (
         <RevenueSection
           start={start}
           end={end}
           eggRevenueSummary={
-            dashboardData?.data
+            dashboard?.data
               ? {
-                  estimatedMonthlyEggs: dashboardData.data.estimatedMonthlyEggs ?? 0,
-                  eggPricePerUnit: dashboardData.data.eggPricePerUnit ?? 0,
-                  estimatedEggRevenue: dashboardData.data.estimatedEggRevenue ?? 0,
-                  monthlyRevenueWithEggs: dashboardData.data.monthlyRevenueWithEggs ?? 0,
+                  estimatedMonthlyEggs:
+                    dashboard.data.estimatedMonthlyEggs ?? 0,
+                  eggPricePerUnit: dashboard.data.eggPricePerUnit ?? 0,
+                  estimatedEggRevenue: dashboard.data.estimatedEggRevenue ?? 0,
+                  monthlyRevenueWithEggs:
+                    dashboard.data.monthlyRevenueWithEggs ?? 0,
                 }
               : null
           }
@@ -100,6 +102,9 @@ function ExpenseSection({ start, end }: { start: string; end: string }) {
   const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_FINANCE_LIMIT);
+  const [pendingExpense, setPendingExpense] = useState<{ id: string } | null>(
+    null,
+  );
 
   const expenseData = ExpenseQueries.useLoadExpenses({
     start,
@@ -116,8 +121,45 @@ function ExpenseSection({ start, end }: { start: string; end: string }) {
 
   return (
     <div>
-      <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-        <h2 className="text-lg font-medium text-gray-900 min-w-0">{pt.expenses}</h2>
+      <Card
+        title={pt.monthlyExpenses}
+        value={`R$ ${expenses.reduce((acc, e) => acc + e.amount, 0).toFixed(2)}`}
+      />
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3 mt-6">
+        <div className="flex gap-2">
+          <select
+            value={orderBy}
+            onChange={(e) => {
+              setOrderBy(e.target.value as "date" | "amount");
+              setPage(1);
+            }}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+          >
+            <option value="" disabled>
+              Ordenar por:
+            </option>
+            {EXPENSE_ORDER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={orderDirection}
+            onChange={(e) => {
+              setOrderDirection(e.target.value as "asc" | "desc");
+              setPage(1);
+            }}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+          >
+            <option value="" disabled>
+              Direção:
+            </option>
+            <option value="desc">Desc</option>
+            <option value="asc">Asc</option>
+          </select>
+        </div>
+
         <Link
           href="/finance/expenses/new"
           className="flex-shrink-0 px-4 py-2 bg-gray-900 text-white text-sm rounded-md hover:bg-gray-800"
@@ -125,39 +167,30 @@ function ExpenseSection({ start, end }: { start: string; end: string }) {
           {pt.addExpense}
         </Link>
       </div>
-      <div className="flex flex-wrap items-center gap-3 mb-3">
-        <select
-          value={orderBy}
-          onChange={(e) => { setOrderBy(e.target.value as "date" | "amount"); setPage(1); }}
-          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-        >
-          <option value="" disabled>Ordenar por:</option>
-          {EXPENSE_ORDER_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-        <select
-          value={orderDirection}
-          onChange={(e) => { setOrderDirection(e.target.value as "asc" | "desc"); setPage(1); }}
-          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-        >
-          <option value="" disabled>Direção:</option>
-          <option value="desc">Desc</option>
-          <option value="asc">Asc</option>
-        </select>
-      </div>
-      {!expenses.length ? (
+      {expenseData.isLoading ? (
+        <LoadingSpinner />
+      ) : !expenses.length ? (
         <p className="text-gray-500">Nenhuma despesa neste período.</p>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{pt.date}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{pt.amount}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{pt.description}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{pt.category}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {pt.date}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {pt.amount}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {pt.description}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {pt.category}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -169,15 +202,17 @@ function ExpenseSection({ start, end }: { start: string; end: string }) {
                   <td className="px-4 py-3 text-sm text-gray-900">
                     R$ {Number(e.amount).toFixed(2)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{e.description ?? "—"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{getExpenseCategoryLabel(e.category)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {e.description ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {getExpenseCategoryLabel(e.category)}
+                  </td>
                   <td className="px-4 py-3 text-sm">
                     <span className="inline-flex items-center gap-0.5">
                       <EditLink href={`/finance/expenses/${e.id}`} />
                       <DeleteButton
-                        onClick={() => {
-                          if (window.confirm("Excluir esta despesa?")) deleteExpense.mutate(e.id);
-                        }}
+                        onClick={() => setPendingExpense(e)}
                         disabled={deleteExpense.isPending}
                       />
                     </span>
@@ -195,6 +230,20 @@ function ExpenseSection({ start, end }: { start: string; end: string }) {
         onPageChange={setPage}
         onPageSizeChange={setLimit}
         currentPageFromApi={expenseData.data?.page}
+      />
+      <ConfirmDialog
+        open={!!pendingExpense}
+        onOpenChange={(o) => !o && setPendingExpense(null)}
+        title={pt.deleteExpenseConfirm}
+        description={pt.deleteConfirmDescription}
+        confirmLabel={pt.delete}
+        onConfirm={async () => {
+          if (pendingExpense)
+            await deleteExpense.mutateAsync(pendingExpense.id);
+          setPendingExpense(null);
+        }}
+        loading={deleteExpense.isPending}
+        variant="destructive"
       />
     </div>
   );
@@ -223,6 +272,9 @@ function RevenueSection({
   const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_FINANCE_LIMIT);
+  const [pendingRevenue, setPendingRevenue] = useState<{ id: string } | null>(
+    null,
+  );
 
   const revenueData = RevenueQueries.useLoadRevenueList({
     start,
@@ -239,8 +291,46 @@ function RevenueSection({
 
   return (
     <div>
-      <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-        <h2 className="text-lg font-medium text-gray-900 min-w-0">{pt.revenue}</h2>
+      <Card
+        title={pt.monthlyRevenue}
+        value={`R$ ${revenue.reduce((acc, r) => acc + r.amount, 0).toFixed(2)}`}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3 mt-6">
+        <div className="flex gap-2">
+          <select
+            value={orderBy}
+            onChange={(e) => {
+              setOrderBy(e.target.value as "date" | "amount");
+              setPage(1);
+            }}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+          >
+            <option value="" disabled>
+              Ordenar por:
+            </option>
+            {REVENUE_ORDER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={orderDirection}
+            onChange={(e) => {
+              setOrderDirection(e.target.value as "asc" | "desc");
+              setPage(1);
+            }}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+          >
+            <option value="" disabled>
+              Direção:
+            </option>
+            <option value="desc">Desc</option>
+            <option value="asc">Asc</option>
+          </select>
+        </div>
+
         <Link
           href="/finance/revenue/new"
           className="flex-shrink-0 px-4 py-2 bg-gray-900 text-white text-sm rounded-md hover:bg-gray-800"
@@ -248,51 +338,47 @@ function RevenueSection({
           {pt.addRevenue}
         </Link>
       </div>
-      <div className="flex flex-wrap items-center gap-3 mb-3">
-        <select
-          value={orderBy}
-          onChange={(e) => { setOrderBy(e.target.value as "date" | "amount"); setPage(1); }}
-          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-        >
-          <option value="" disabled>Ordenar por:</option>
-          {REVENUE_ORDER_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-        <select
-          value={orderDirection}
-          onChange={(e) => { setOrderDirection(e.target.value as "asc" | "desc"); setPage(1); }}
-          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-        >
-          <option value="" disabled>Direção:</option>
-          <option value="desc">Desc</option>
-          <option value="asc">Asc</option>
-        </select>
-      </div>
       {eggRevenueSummary && (
         <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 space-y-1">
-          {eggRevenueSummary.estimatedMonthlyEggs > 0 && eggRevenueSummary.eggPricePerUnit > 0 && (
-            <p>
-              {pt.estimatedEggRevenue}: {eggRevenueSummary.estimatedMonthlyEggs} ovos × R$ {eggRevenueSummary.eggPricePerUnit.toFixed(2)} = R$ {eggRevenueSummary.estimatedEggRevenue.toFixed(2)}
-            </p>
-          )}
+          {eggRevenueSummary.estimatedMonthlyEggs > 0 &&
+            eggRevenueSummary.eggPricePerUnit > 0 && (
+              <p>
+                {pt.estimatedEggRevenue}:{" "}
+                {eggRevenueSummary.estimatedMonthlyEggs} ovos × R${" "}
+                {eggRevenueSummary.eggPricePerUnit.toFixed(2)} = R${" "}
+                {eggRevenueSummary.estimatedEggRevenue.toFixed(2)}
+              </p>
+            )}
           <p className="font-medium">
-            {pt.totalRevenueWithEggs}: R$ {eggRevenueSummary.monthlyRevenueWithEggs.toFixed(2)}
+            {pt.totalRevenueWithEggs}: R${" "}
+            {eggRevenueSummary.monthlyRevenueWithEggs.toFixed(2)}
           </p>
         </div>
       )}
-      {!revenue.length ? (
+      {revenueData.isLoading ? (
+        <LoadingSpinner />
+      ) : !revenue.length ? (
         <p className="text-gray-500">Nenhuma receita neste período.</p>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{pt.date}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{pt.amount}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{pt.description}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{pt.source}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {pt.date}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {pt.amount}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {pt.description}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {pt.source}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -304,15 +390,17 @@ function RevenueSection({
                   <td className="px-4 py-3 text-sm text-gray-900">
                     R$ {Number(r.amount).toFixed(2)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{r.description ?? "—"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{r.source ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {r.description ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {r.source ?? "—"}
+                  </td>
                   <td className="px-4 py-3 text-sm">
                     <span className="inline-flex items-center gap-0.5">
                       <EditLink href={`/finance/revenue/${r.id}`} />
                       <DeleteButton
-                        onClick={() => {
-                          if (window.confirm("Excluir esta receita?")) deleteRevenue.mutate(r.id);
-                        }}
+                        onClick={() => setPendingRevenue(r)}
                         disabled={deleteRevenue.isPending}
                       />
                     </span>
@@ -331,6 +419,35 @@ function RevenueSection({
         onPageSizeChange={setLimit}
         currentPageFromApi={revenueData.data?.page}
       />
+      <ConfirmDialog
+        open={!!pendingRevenue}
+        onOpenChange={(o) => !o && setPendingRevenue(null)}
+        title={pt.deleteRevenueConfirm}
+        description={pt.deleteConfirmDescription}
+        confirmLabel={pt.delete}
+        onConfirm={async () => {
+          if (pendingRevenue)
+            await deleteRevenue.mutateAsync(pendingRevenue.id);
+          setPendingRevenue(null);
+        }}
+        loading={deleteRevenue.isPending}
+        variant="destructive"
+      />
+    </div>
+  );
+}
+
+function Card({
+  title,
+  value,
+}: {
+  title: string;
+  value: string | number | React.ReactNode;
+}) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <p className="text-sm text-gray-500">{title}</p>
+      <p className="mt-1 text-xl font-semibold text-gray-900">{value}</p>
     </div>
   );
 }

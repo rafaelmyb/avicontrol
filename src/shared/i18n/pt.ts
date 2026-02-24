@@ -18,11 +18,12 @@ export const pt = {
 
   // App
   appName: "AviControl",
-  dashboard: "Painel",
+  dashboard: "Visão geral",
   chickens: "Galinhas",
   brood: "Choco",
   feed: "Ração",
   finance: "Financeiro",
+  reports: "Relatórios",
   settings: "Configurações",
   eggPricePerUnit: "Valor do ovo (R$/unidade)",
   eggPricePerUnitHelp:
@@ -58,7 +59,17 @@ export const pt = {
   sourceLabel: "Origem",
   save: "Salvar",
   cancel: "Cancelar",
+  confirm: "Confirmar",
   delete: "Excluir",
+  deleteConfirmDescription: "Esta ação não pode ser desfeita.",
+  deleteChickenConfirm: "Excluir esta galinha?",
+  deleteBroodConfirm: "Excluir este ciclo de choco?",
+  deleteFeedConfirm: "Excluir esta ração?",
+  deleteExpenseConfirm: "Excluir esta despesa?",
+  deleteRevenueConfirm: "Excluir esta receita?",
+  logoutConfirmTitle: "Tem certeza que deseja sair da sua conta?",
+  logoutConfirmDescription:
+    "Você poderá acessar novamente em qualquer momento.",
   edit: "Editar",
 
   // Brood

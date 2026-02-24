@@ -1,13 +1,14 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { pt } from "@/shared/i18n/pt";
 import { FEED_TYPE_OPTIONS } from "@/shared/feed-types";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { DeleteButton } from "@/components/action-icon-button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FormPageHeader } from "@/components/form-page-header";
 import { FeedQueries, FeedMutations } from "@/services/queries/feed";
 
@@ -25,6 +26,7 @@ export default function FeedDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const feedQuery = FeedQueries.useLoadFeedById(id);
   const feed = feedQuery.data;
   const updateFeed = FeedMutations.useUpdateFeed(id);
@@ -63,11 +65,6 @@ export default function FeedDetailPage() {
       consumptionPerBirdGrams: data.consumptionPerBirdGrams,
       purchaseDate: data.purchaseDate || feed!.purchaseDate.slice(0, 10),
     });
-  };
-
-  const onDelete = () => {
-    if (window.confirm("Excluir esta ração?"))
-      deleteFeed.mutate(id, { onSuccess: () => router.push("/feed") });
   };
 
   if (feedQuery.isLoading || !feed) {
@@ -181,9 +178,22 @@ export default function FeedDetailPage() {
             {updateFeed.isPending ? pt.loading : pt.save}
           </button>
           <DeleteButton
-            onClick={onDelete}
+            onClick={() => setConfirmOpen(true)}
             disabled={deleteFeed.isPending}
             className="p-2"
+          />
+          <ConfirmDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            title={pt.deleteFeedConfirm}
+            description={pt.deleteConfirmDescription}
+            confirmLabel={pt.delete}
+            onConfirm={async () => {
+              await deleteFeed.mutateAsync(id);
+              router.push("/feed");
+            }}
+            loading={deleteFeed.isPending}
+            variant="destructive"
           />
         </div>
       </form>

@@ -5,6 +5,7 @@ import { pt } from "@/shared/i18n/pt";
 import { formatDateOnly } from "@/shared/format-date";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { EditLink, DeleteButton } from "@/components/action-icon-button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { TablePagination } from "@/components/table-pagination";
 import { ChickenQueries, ChickenMutations } from "@/services/queries/chickens";
 
@@ -50,6 +51,9 @@ const DEFAULT_LIMIT = 10;
 export function ChickenList() {
   const [statusFilter, setStatusFilter] = useState("");
   const [batchFilter, setBatchFilter] = useState("");
+  const [pendingChicken, setPendingChicken] = useState<{ id: string } | null>(
+    null,
+  );
   const [orderBy, setOrderBy] = useState<"createdAt" | "name" | "birthDate">(
     "createdAt",
   );
@@ -210,10 +214,7 @@ export function ChickenList() {
                   <span className="inline-flex items-center gap-0.5">
                     <EditLink href={`/chickens/${c.id}`} />
                     <DeleteButton
-                      onClick={() => {
-                        if (window.confirm("Excluir esta galinha?"))
-                          deleteChicken.mutate(c.id);
-                      }}
+                      onClick={() => setPendingChicken(c)}
                       disabled={deleteChicken.isPending}
                     />
                   </span>
@@ -230,6 +231,19 @@ export function ChickenList() {
         onPageChange={setPage}
         onPageSizeChange={setLimit}
         currentPageFromApi={chickensQuery.data?.page}
+      />
+      <ConfirmDialog
+        open={!!pendingChicken}
+        onOpenChange={(o) => !o && setPendingChicken(null)}
+        title={pt.deleteChickenConfirm}
+        description={pt.deleteConfirmDescription}
+        confirmLabel={pt.delete}
+        onConfirm={async () => {
+          if (pendingChicken) await deleteChicken.mutateAsync(pendingChicken.id);
+          setPendingChicken(null);
+        }}
+        loading={deleteChicken.isPending}
+        variant="destructive"
       />
     </div>
   );

@@ -53,7 +53,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
   }, []);
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="h-screen flex overflow-hidden bg-gray-50">
       <DashboardSidebar
         user={user}
         open={sidebarOpen}
@@ -77,7 +77,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
           <span className="ml-2 font-semibold text-gray-900">AviControl</span>
         </div>
       )}
-      <main className={`flex-1 overflow-auto ${!isLg ? "pt-12" : ""}`}>{children}</main>
+      <main className={`flex-1 min-w-0 overflow-auto ${!isLg ? "pt-12" : ""}`}>{children}</main>
       {!isLg && sidebarOpen && (
         <button
           type="button"

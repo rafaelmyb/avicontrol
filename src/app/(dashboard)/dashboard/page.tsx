@@ -1,16 +1,5 @@
 "use client";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from "recharts";
 import { pt } from "@/shared/i18n/pt";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { FeedRestockCard } from "@/components/feed-restock-card";
@@ -39,7 +28,8 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-semibold text-gray-900 mb-6">
         {pt.dashboard}
       </h1>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+      <div className="grid gap-4 sm:grid-cols-3">
         <Card
           title={pt.monthlyExpenses}
           value={`R$ ${data.monthlyExpenses.toFixed(2)}`}
@@ -65,147 +55,48 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-6">
-        <FeedRestockCard alerts={data.feedRestockAlerts} />
+        {data.upcomingBroodEvents.length > 0 && (
+          <Card
+            title={pt.upcomingBroodEvents}
+            value={
+              <ul>
+                {data.upcomingBroodEvents.map((ev) => (
+                  <li
+                    key={ev.id}
+                    className="text-sm flex items-center justify-between"
+                  >
+                    <span className="font-medium text-gray-900">
+                      {ev.chickenName}
+                    </span>
+                    <span className="text-gray-600 font-normal">
+                      {new Date(ev.date).toLocaleDateString("pt-BR")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            }
+          />
+        )}
       </div>
 
-      {data.charts && (
-        <div className="mt-6 grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <h2 className="text-sm font-medium text-gray-700 mb-3">
-              Crescimento do plantel (por data de criação)
-            </h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.charts.chickenGrowth}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                  <Tooltip
-                    formatter={(v: number | undefined) => [
-                      v != null ? String(v) : "",
-                      "Galinhas",
-                    ]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#111827"
-                    strokeWidth={2}
-                    name="Galinhas"
-                    dot
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <h2 className="text-sm font-medium text-gray-700 mb-3">
-              Produção de ovos (estimada) mês a mês
-            </h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.charts.monthlyEggs}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                  <Tooltip
-                    formatter={(v: number | undefined) => [v ?? 0, "Ovos"]}
-                  />
-                  <Bar
-                    dataKey="eggs"
-                    fill="#4b5563"
-                    name="Ovos"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <h2 className="text-sm font-medium text-gray-700 mb-3">
-              Receita mês a mês
-            </h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.charts.monthlyRevenue}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(v) => `R$ ${v}`}
-                  />
-                  <Tooltip
-                    formatter={(v: number | undefined) => [
-                      `R$ ${Number(v ?? 0).toFixed(2)}`,
-                      "Receita",
-                    ]}
-                  />
-                  <Bar
-                    dataKey="revenue"
-                    fill="#059669"
-                    name="Receita"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <h2 className="text-sm font-medium text-gray-700 mb-3">
-              Lucro mês a mês
-            </h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.charts.monthlyProfit}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(v) => `R$ ${v}`}
-                  />
-                  <Tooltip
-                    formatter={(v: number | undefined) => [
-                      `R$ ${Number(v ?? 0).toFixed(2)}`,
-                      "Lucro",
-                    ]}
-                  />
-                  <Bar
-                    dataKey="profit"
-                    fill="#2563eb"
-                    name="Lucro"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {data.upcomingBroodEvents.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-2">
-            {pt.upcomingBroodEvents}
-          </h2>
-          <ul className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-200">
-            {data.upcomingBroodEvents.map((ev) => (
-              <li key={ev.id} className="px-4 py-3 text-sm text-gray-700">
-                {ev.chickenName} –{" "}
-                {new Date(ev.date).toLocaleDateString("pt-BR")}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="mt-6">
+        <FeedRestockCard alerts={data.feedRestockAlerts} />
+      </div>
     </div>
   );
 }
 
-function Card({ title, value }: { title: string; value: string | number }) {
+function Card({
+  title,
+  value,
+}: {
+  title: string;
+  value: string | number | React.ReactNode;
+}) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4">
       <p className="text-sm text-gray-500">{title}</p>
-      <p className="mt-1 text-xl font-semibold text-gray-900">{value}</p>
+      <div className="mt-1 text-xl font-semibold text-gray-900">{value}</div>
     </div>
   );
 }

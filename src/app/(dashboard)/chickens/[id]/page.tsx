@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { pt } from "@/shared/i18n/pt";
 import { ChickenForm } from "@/modules/chicken/presentation/chicken-form";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { DeleteButton } from "@/components/action-icon-button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FormPageHeader } from "@/components/form-page-header";
 import { ChickenQueries, ChickenMutations } from "@/services/queries/chickens";
 
@@ -25,6 +27,7 @@ export default function ChickenDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const chickenQuery = ChickenQueries.useLoadChicken(id);
   const chicken = chickenQuery.data;
   const updateChicken = ChickenMutations.useUpdateChicken(id);
@@ -90,13 +93,21 @@ export default function ChickenDetailPage() {
           {new Date(chicken.layStartDate).toLocaleDateString("pt-BR")}
         </p>
         <DeleteButton
-          onClick={() => {
-            if (window.confirm("Excluir esta galinha?"))
-              deleteChicken.mutate(id, {
-                onSuccess: () => router.push("/chickens"),
-              });
-          }}
+          onClick={() => setConfirmOpen(true)}
           disabled={deleteChicken.isPending}
+        />
+        <ConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          title={pt.deleteChickenConfirm}
+          description={pt.deleteConfirmDescription}
+          confirmLabel={pt.delete}
+          onConfirm={async () => {
+            await deleteChicken.mutateAsync(id);
+            router.push("/chickens");
+          }}
+          loading={deleteChicken.isPending}
+          variant="destructive"
         />
       </div>
     </div>

@@ -1,13 +1,14 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { pt } from "@/shared/i18n/pt";
 import { formatDateOnly } from "@/shared/format-date";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { DeleteButton } from "@/components/action-icon-button";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FormPageHeader } from "@/components/form-page-header";
 import { BroodQueries, BroodMutations } from "@/services/queries/brood";
 
@@ -21,6 +22,7 @@ export default function BroodDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const brood = BroodQueries.useLoadBrood(id);
   const updateBrood = BroodMutations.useUpdateBrood(id);
   const deleteBrood = BroodMutations.useDeleteBrood();
@@ -139,14 +141,22 @@ export default function BroodDetailPage() {
             {updateBrood.isPending ? pt.loading : pt.save}
           </button>
           <DeleteButton
-            onClick={() => {
-              if (window.confirm("Excluir este ciclo de choco?"))
-                deleteBrood.mutate(id, {
-                  onSuccess: () => router.push("/brood"),
-                });
-            }}
+            onClick={() => setConfirmOpen(true)}
             disabled={deleteBrood.isPending}
             className="p-2"
+          />
+          <ConfirmDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            title={pt.deleteBroodConfirm}
+            description={pt.deleteConfirmDescription}
+            confirmLabel={pt.delete}
+            onConfirm={async () => {
+              await deleteBrood.mutateAsync(id);
+              router.push("/brood");
+            }}
+            loading={deleteBrood.isPending}
+            variant="destructive"
           />
         </div>
       </form>

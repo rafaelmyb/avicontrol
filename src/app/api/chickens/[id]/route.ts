@@ -25,6 +25,7 @@ const updateBodySchema = z.object({
       "deceased",
     ])
     .optional(),
+  sex: z.enum(["female", "male"]).optional(),
   source: z.enum(["purchased", "hatched"]).optional(),
   purchasePrice: z
     .union([z.number(), z.string()])

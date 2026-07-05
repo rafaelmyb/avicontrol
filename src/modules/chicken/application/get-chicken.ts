@@ -1,6 +1,6 @@
 import type { IChickenRepository } from "../domain/repository";
 import { ageInDays, layStartDate } from "../domain/services";
-import type { ChickenSource } from "../domain/entities";
+import type { ChickenSex, ChickenSource } from "../domain/entities";
 
 export interface ChickenDto {
   id: string;
@@ -10,6 +10,7 @@ export interface ChickenDto {
   breed: string;
   birthDate: string;
   status: string;
+  sex: ChickenSex;
   source: ChickenSource;
   purchasePrice: number | null;
   ageInDays: number;
@@ -34,6 +35,7 @@ export async function getChicken(
     breed: entity.breed,
     birthDate: entity.birthDate.toISOString(),
     status: entity.status,
+    sex: entity.sex,
     source: entity.source,
     purchasePrice: entity.purchasePrice,
     ageInDays: ageInDays(entity.birthDate, now),

@@ -20,7 +20,7 @@ export interface IChickenRepository {
   update(
     id: string,
     userId: string,
-    data: Partial<Pick<ChickenEntity, "name" | "breed" | "birthDate" | "status" | "source" | "purchasePrice">>
+    data: Partial<Pick<ChickenEntity, "name" | "breed" | "birthDate" | "status" | "sex" | "source" | "purchasePrice">>
   ): Promise<ChickenEntity | null>;
   delete(id: string, userId: string): Promise<boolean>;
 }

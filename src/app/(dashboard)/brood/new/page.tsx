@@ -36,7 +36,10 @@ export default function NewBroodPage() {
   });
 
   const chickenId = watch("chickenId");
-  const chickenOptions = chickens.data?.chickens ?? [];
+  // Only female chickens can brood — roosters are excluded from the selector.
+  const chickenOptions = (chickens.data?.chickens ?? []).filter(
+    (c) => !c.sex || c.sex === "female"
+  );
 
   const onSubmit = (data: BroodNewFields) => {
     if (!data.chickenId) return;

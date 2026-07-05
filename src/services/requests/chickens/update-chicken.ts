@@ -3,6 +3,7 @@ export type UpdateChickenBody = {
   breed: string;
   birthDate: string;
   status: string;
+  sex?: string;
   source: string;
   purchasePrice?: number | null;
 };

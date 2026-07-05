@@ -14,6 +14,7 @@ export type ChickenDto = {
   breed: string;
   birthDate: string;
   status: string;
+  sex: string;
   source: string;
   purchasePrice: number | null;
   ageInDays: number;

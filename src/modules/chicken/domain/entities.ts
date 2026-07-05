@@ -13,6 +13,9 @@ export type ChickenStatus =
 
 export type ChickenSource = "purchased" | "hatched";
 
+/** Biological sex of the bird. Males (roosters) never lay eggs or brood. */
+export type ChickenSex = "female" | "male";
+
 export interface ChickenEntity {
   id: string;
   userId: string;
@@ -21,6 +24,7 @@ export interface ChickenEntity {
   breed: string;
   birthDate: Date;
   status: ChickenStatus;
+  sex: ChickenSex;
   source: ChickenSource;
   purchasePrice: number | null;
   createdAt: Date;
@@ -34,6 +38,7 @@ export interface CreateChickenInput {
   breed: string;
   birthDate: Date;
   status: ChickenStatus;
+  sex?: ChickenSex;
   source: ChickenSource;
   purchasePrice?: number | null;
 }

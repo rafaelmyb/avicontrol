@@ -1,11 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import type {
   ChickenEntity,
+  ChickenSex,
   ChickenSource,
   CreateChickenInput,
 } from "../domain/entities";
 import type { IChickenRepository, ChickenListOptions } from "../domain/repository";
-import { ChickenStatus as PrismaStatus, ChickenSource as PrismaSource } from "@prisma/client";
+import {
+  ChickenStatus as PrismaStatus,
+  ChickenSource as PrismaSource,
+  ChickenSex as PrismaSex,
+} from "@prisma/client";
 
 function toDomainStatus(s: PrismaStatus): ChickenEntity["status"] {
   return s as ChickenEntity["status"];
@@ -13,6 +18,10 @@ function toDomainStatus(s: PrismaStatus): ChickenEntity["status"] {
 
 function toDomainSource(s: PrismaSource): ChickenSource {
   return s as ChickenSource;
+}
+
+function toDomainSex(s: PrismaSex): ChickenSex {
+  return s as ChickenSex;
 }
 
 function toEntity(row: {
@@ -23,6 +32,7 @@ function toEntity(row: {
   breed: string;
   birthDate: Date;
   status: PrismaStatus;
+  sex: PrismaSex;
   source: PrismaSource;
   purchasePrice: number | null;
   createdAt: Date;
@@ -36,6 +46,7 @@ function toEntity(row: {
     breed: row.breed,
     birthDate: row.birthDate,
     status: toDomainStatus(row.status),
+    sex: toDomainSex(row.sex),
     source: toDomainSource(row.source),
     purchasePrice: row.purchasePrice,
     createdAt: row.createdAt,
@@ -53,6 +64,7 @@ export class PrismaChickenRepository implements IChickenRepository {
         breed: data.breed,
         birthDate: data.birthDate,
         status: data.status as PrismaStatus,
+        sex: (data.sex ?? "female") as PrismaSex,
         source: data.source as PrismaSource,
         purchasePrice: data.purchasePrice ?? null,
       },
@@ -106,7 +118,7 @@ export class PrismaChickenRepository implements IChickenRepository {
   async update(
     id: string,
     userId: string,
-    data: Partial<Pick<ChickenEntity, "name" | "breed" | "birthDate" | "status" | "source" | "purchasePrice">>
+    data: Partial<Pick<ChickenEntity, "name" | "breed" | "birthDate" | "status" | "sex" | "source" | "purchasePrice">>
   ): Promise<ChickenEntity | null> {
     const row = await prisma.chicken.updateMany({
       where: { id, userId },
@@ -115,6 +127,7 @@ export class PrismaChickenRepository implements IChickenRepository {
         ...(data.breed != null && { breed: data.breed }),
         ...(data.birthDate != null && { birthDate: data.birthDate }),
         ...(data.status != null && { status: data.status as PrismaStatus }),
+        ...(data.sex != null && { sex: data.sex as PrismaSex }),
         ...(data.source != null && { source: data.source as PrismaSource }),
         ...(data.purchasePrice !== undefined && { purchasePrice: data.purchasePrice }),
       },

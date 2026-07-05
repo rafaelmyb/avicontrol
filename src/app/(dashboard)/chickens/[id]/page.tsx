@@ -67,6 +67,7 @@ export default function ChickenDetailPage() {
           breed: chicken.breed,
           birthDate: chicken.birthDate.slice(0, 10),
           status: chicken.status,
+          sex: chicken.sex ?? "female",
           source: chicken.source,
           purchasePrice: chicken.purchasePrice ?? null,
         }}
@@ -77,6 +78,7 @@ export default function ChickenDetailPage() {
             breed: values.breed,
             birthDate: values.birthDate,
             status: values.status,
+            sex: values.sex,
             source: values.source,
             purchasePrice: values.purchasePrice ?? null,
           });

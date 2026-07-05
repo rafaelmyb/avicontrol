@@ -37,6 +37,11 @@ const sourceLabel: Record<string, string> = {
   hatched: pt.hatched,
 };
 
+const sexLabel: Record<string, string> = {
+  female: pt.female,
+  male: pt.male,
+};
+
 const ORDER_BY_OPTIONS: {
   value: "createdAt" | "name" | "birthDate";
   label: string;
@@ -169,6 +174,9 @@ export function ChickenList() {
                 {pt.birthDate}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                {pt.sexLabel}
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 {pt.status}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -195,6 +203,9 @@ export function ChickenList() {
                 <td className="px-4 py-3 text-sm text-gray-600">{c.breed}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">
                   {formatDateOnly(c.birthDate)}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  {sexLabel[c.sex] ?? c.sex}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">
                   {statusLabel[c.status] ?? c.status}

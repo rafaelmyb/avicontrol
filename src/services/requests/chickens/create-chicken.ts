@@ -6,6 +6,7 @@ export type CreateChickenBody = {
   breed: string;
   birthDate: string;
   status: string;
+  sex?: string;
   source: string;
   purchasePrice?: number | null;
 };
@@ -21,6 +22,7 @@ export const createChicken = async (
         breed: body.breed,
         birthDate: body.birthDate,
         status: body.status,
+        sex: body.sex ?? "female",
         source: body.source,
         purchasePrice: body.purchasePrice ?? null,
       }
@@ -29,6 +31,7 @@ export const createChicken = async (
         breed: body.breed,
         birthDate: body.birthDate,
         status: body.status,
+        sex: body.sex ?? "female",
         source: body.source,
         purchasePrice: body.purchasePrice ?? null,
       };

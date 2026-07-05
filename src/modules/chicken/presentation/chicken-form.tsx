@@ -16,6 +16,7 @@ export interface ChickenFormValues {
   breed: string;
   birthDate: string;
   status: string;
+  sex: string;
   source: string;
   purchasePrice?: number | null;
 }
@@ -34,6 +35,11 @@ interface ChickenFormProps {
   error?: string;
 }
 
+const defaultSexOptions = [
+  { value: "female", label: pt.female },
+  { value: "male", label: pt.male },
+] as const;
+
 function getDefaultValues(initialValues?: Partial<ChickenFormValues>): ChickenFormFields {
   return {
     name: initialValues?.name ?? "",
@@ -42,6 +48,7 @@ function getDefaultValues(initialValues?: Partial<ChickenFormValues>): ChickenFo
     breed: initialValues?.breed ?? "",
     birthDate: initialValues?.birthDate ?? defaultBirthDate,
     status: initialValues?.status ?? "chick",
+    sex: initialValues?.sex ?? "female",
     source: initialValues?.source ?? "purchased",
     purchasePrice:
       initialValues?.purchasePrice != null
@@ -82,6 +89,7 @@ export function ChickenForm({
       breed: data.breed,
       birthDate: data.birthDate,
       status: data.status,
+      sex: data.sex,
       source: data.source,
       purchasePrice:
         data.purchasePrice === "" ? null : Number(data.purchasePrice),
@@ -167,6 +175,25 @@ export function ChickenForm({
           {...register("birthDate", { required: true })}
           className="w-full min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
         />
+      </div>
+      <div>
+        <label
+          htmlFor="sex"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          {pt.sexLabel}
+        </label>
+        <select
+          id="sex"
+          {...register("sex")}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900"
+        >
+          {defaultSexOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
       <div>
         <label

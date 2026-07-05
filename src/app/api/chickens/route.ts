@@ -22,6 +22,7 @@ const createBodySchema = z.object({
     "sold",
     "deceased",
   ]),
+  sex: z.enum(["female", "male"]).optional().default("female"),
   source: z.enum(["purchased", "hatched"]).optional(),
   purchasePrice: z
     .union([z.number(), z.string()])
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const { name, breed, birthDate, status, source, purchasePrice } = parsed.data;
+    const { name, breed, birthDate, status, sex, source, purchasePrice } = parsed.data;
     const repo = new PrismaChickenRepository();
     const chicken = await createChicken(repo, {
       userId: session.user.id,
@@ -100,6 +101,7 @@ export async function POST(request: Request) {
       breed,
       birthDate: new Date(birthDate),
       status,
+      sex: sex ?? "female",
       source: source ?? "purchased",
       purchasePrice: purchasePrice ?? null,
     });

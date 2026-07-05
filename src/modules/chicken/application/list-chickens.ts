@@ -1,5 +1,5 @@
 import type { IChickenRepository, ChickenListOptions } from "../domain/repository";
-import type { ChickenSource } from "../domain/entities";
+import type { ChickenSex, ChickenSource } from "../domain/entities";
 import { ageInDays, layStartDate } from "../domain/services";
 
 export interface ChickenDto {
@@ -10,6 +10,7 @@ export interface ChickenDto {
   breed: string;
   birthDate: string;
   status: string;
+  sex: ChickenSex;
   source: ChickenSource;
   purchasePrice: number | null;
   ageInDays: number;
@@ -40,6 +41,7 @@ export async function listChickensByUser(
     breed: c.breed,
     birthDate: c.birthDate.toISOString(),
     status: c.status,
+    sex: c.sex,
     source: c.source,
     purchasePrice: c.purchasePrice,
     ageInDays: ageInDays(c.birthDate, now),

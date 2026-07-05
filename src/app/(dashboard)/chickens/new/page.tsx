@@ -37,6 +37,7 @@ export default function NewChickenPage() {
               breed: values.breed,
               birthDate: values.birthDate,
               status: values.status,
+              sex: values.sex,
               source: values.source,
               purchasePrice: values.purchasePrice ?? null,
             });
@@ -47,6 +48,7 @@ export default function NewChickenPage() {
               breed: values.breed,
               birthDate: values.birthDate,
               status: values.status,
+              sex: values.sex,
               source: values.source,
               purchasePrice: values.purchasePrice ?? null,
             });

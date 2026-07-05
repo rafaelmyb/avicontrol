@@ -24,6 +24,7 @@ export async function GET() {
   const [
     totalChickens,
     statusCounts,
+    layingFemalesCount,
     broodCycles,
     activeChickensForFeedAge,
     user,
@@ -36,6 +37,8 @@ export async function GET() {
       where: { userId },
       _count: true,
     }),
+    // Only female laying chickens produce eggs — males excluded explicitly.
+    prisma.chicken.count({ where: { userId, status: "laying", sex: "female" } }),
     prisma.broodCycle.findMany({
       where: {
         chicken: { userId },
@@ -80,8 +83,9 @@ export async function GET() {
 
   const monthlyResult = monthlyProfitBatchResult.currentMonth;
   const eggPricePerUnit = user?.eggPricePerUnit ?? 0;
+  // Egg estimation uses only female laying chickens; males don't lay eggs.
   const estimatedMonthlyEggs = monthlyEggProduction(
-    layingChickens,
+    layingFemalesCount,
     DEFAULT_AVERAGE_EGGS_PER_MONTH
   );
   const estimatedEggRevenue = estimatedMonthlyEggs * eggPricePerUnit;

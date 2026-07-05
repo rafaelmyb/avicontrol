@@ -29,6 +29,7 @@ export async function createBroodCycle(
 ): Promise<BroodCycleDto> {
   const chicken = await chickenRepo.findById(cmd.chickenId, cmd.userId);
   if (!chicken) throw new Error("Chicken not found");
+  if (chicken.sex === "male") throw new Error("Galos não podem iniciar um ciclo de choco");
 
   const expectedHatch = expectedHatchDate(cmd.startDate);
   const expectedReturn = expectedReturnToLayDate(expectedHatch);

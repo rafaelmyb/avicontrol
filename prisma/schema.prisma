@@ -27,6 +27,7 @@ model Chicken {
   breed       String
   birthDate   DateTime
   status      ChickenStatus
+  sex         ChickenSex    @default(female)
   source      ChickenSource @default(purchased)
   purchasePrice Float?
   createdAt   DateTime      @default(now())
@@ -55,6 +56,11 @@ enum ChickenStatus {
 enum ChickenSource {
   purchased
   hatched
+}
+
+enum ChickenSex {
+  female
+  male
 }
 
 model BroodCycle {

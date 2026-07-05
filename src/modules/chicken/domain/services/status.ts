@@ -1,4 +1,4 @@
-import type { ChickenStatus } from "../entities";
+import type { ChickenSex, ChickenStatus } from "../entities";
 
 export interface BroodContext {
   isInBrood: boolean;
@@ -6,16 +6,30 @@ export interface BroodContext {
 }
 
 /**
- * Pure domain: derive chicken status from age and brood context.
- * chick -> pullet -> laying; brooding/recovering from brood; retired/sold/deceased set elsewhere.
+ * Pure domain: derive chicken status from age, brood context, and sex.
+ *
+ * Female path: chick -> pullet -> laying; brooding/recovering from brood.
+ * Male path (roosters): chick -> pullet; males never transition to laying,
+ *   brooding or recovering automatically. Adult males (age >= 150) remain
+ *   "pullet" — the least disruptive non-productive status that preserves the
+ *   age-based progression without introducing a new status value.
+ *
+ * Terminal statuses (retired/sold/deceased) are preserved for all sexes.
  */
 export function updateChickenStatus(
   ageInDays: number,
   broodContext: BroodContext,
-  currentStatus: ChickenStatus
+  currentStatus: ChickenStatus,
+  sex: ChickenSex = "female"
 ): ChickenStatus {
   if (["retired", "sold", "deceased"].includes(currentStatus)) {
     return currentStatus;
+  }
+
+  // Males never lay, brood or recover — skip brood context entirely.
+  if (sex === "male") {
+    if (ageInDays < 30) return "chick";
+    return "pullet";
   }
 
   if (broodContext.isInBrood) {

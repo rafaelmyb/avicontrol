@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { ChickenStatus, ChickenSource } from "@prisma/client";
+import { ChickenStatus, ChickenSource, ChickenSex } from "@prisma/client";
 
 const BATCH_QUANTITY_MIN = 2;
 const BATCH_QUANTITY_MAX = 50;
@@ -27,6 +27,7 @@ const batchBodySchema = z.object({
     "sold",
     "deceased",
   ]),
+  sex: z.enum(["female", "male"]).optional().default("female"),
   source: z.enum(["purchased", "hatched"]).optional(),
   purchasePrice: z
     .union([z.number(), z.string()])
@@ -57,12 +58,14 @@ export async function POST(request: Request) {
       breed,
       birthDate,
       status,
+      sex,
       source,
       purchasePrice,
     } = parsed.data;
     const userId = session.user.id;
     const sourceVal = (source ?? "purchased") as ChickenSource;
     const statusVal = status as ChickenStatus;
+    const sexVal = (sex ?? "female") as ChickenSex;
     const birthDateObj = new Date(birthDate);
     const effectivePrice = purchasePrice ?? null;
     const hasExpense =
@@ -76,6 +79,7 @@ export async function POST(request: Request) {
         breed,
         birthDate: birthDateObj,
         status: statusVal,
+        sex: sexVal,
         source: sourceVal,
         purchasePrice: effectivePrice,
       }));
@@ -103,6 +107,7 @@ export async function POST(request: Request) {
         breed: c.breed,
         birthDate: c.birthDate.toISOString(),
         status: c.status,
+        sex: c.sex,
         source: c.source,
         purchasePrice: c.purchasePrice,
         createdAt: c.createdAt.toISOString(),

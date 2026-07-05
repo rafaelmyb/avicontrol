@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { pt } from "@/shared/i18n/pt";
+import { todayLocalISODate } from "@/shared/format-date";
 import { FormPageHeader } from "@/components/form-page-header";
 import { ChickenQueries } from "@/services/queries/chickens";
 import { BroodMutations } from "@/services/queries/brood";
@@ -15,7 +16,7 @@ type BroodNewFields = {
 
 const defaultValues: BroodNewFields = {
   chickenId: "",
-  startDate: new Date().toISOString().slice(0, 10),
+  startDate: todayLocalISODate(),
   eggCount: 0,
 };
 

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { pt } from "@/shared/i18n/pt";
+import { todayLocalISODate } from "@/shared/format-date";
 import { FEED_TYPE_OPTIONS } from "@/shared/feed-types";
 import { FormPageHeader } from "@/components/form-page-header";
 import { FeedMutations } from "@/services/queries/feed";
@@ -18,7 +19,7 @@ type NewFeedFormValues = {
   purchaseDate: string;
 };
 
-const defaultPurchaseDate = new Date().toISOString().slice(0, 10);
+const defaultPurchaseDate = todayLocalISODate();
 
 export default function NewFeedPage() {
   const router = useRouter();

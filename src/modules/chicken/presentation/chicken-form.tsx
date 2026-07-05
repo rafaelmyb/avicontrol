@@ -3,11 +3,12 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { pt } from "@/shared/i18n/pt";
+import { todayLocalISODate } from "@/shared/format-date";
 
 const BATCH_QUANTITY_MIN = 2;
 const BATCH_QUANTITY_MAX = 50;
 
-const defaultBirthDate = new Date().toISOString().slice(0, 10);
+const defaultBirthDate = todayLocalISODate();
 
 export interface ChickenFormValues {
   name: string;

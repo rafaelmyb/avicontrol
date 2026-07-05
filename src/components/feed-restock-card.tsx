@@ -1,6 +1,7 @@
 "use client";
 
 import { pt } from "@/shared/i18n/pt";
+import { formatDateOnly } from "@/shared/format-date";
 
 export interface FeedRestockAlertItem {
   feedType: string;
@@ -25,7 +26,7 @@ export const FeedRestockCard = ({ alerts }: FeedRestockCardProps) => {
             <span className="font-medium text-gray-900">{item.label}</span>
             <span className="text-gray-600">
               {item.date
-                ? new Date(item.date).toLocaleDateString("pt-BR")
+                ? formatDateOnly(item.date)
                 : pt.feedNoStock}
             </span>
           </li>

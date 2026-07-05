@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { pt } from "@/shared/i18n/pt";
+import { todayLocalISODate } from "@/shared/format-date";
 import { FormPageHeader } from "@/components/form-page-header";
 import { RevenueMutations } from "@/services/queries/revenue";
 
@@ -17,7 +18,7 @@ const defaultValues: RevenueNewFields = {
   amount: 0,
   description: "",
   source: "",
-  date: new Date().toISOString().slice(0, 10),
+  date: todayLocalISODate(),
 };
 
 export default function NewRevenuePage() {

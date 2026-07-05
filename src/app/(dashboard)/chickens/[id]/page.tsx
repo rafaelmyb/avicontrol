@@ -9,6 +9,7 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import { DeleteButton } from "@/components/action-icon-button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FormPageHeader } from "@/components/form-page-header";
+import { formatDateOnly } from "@/shared/format-date";
 import { ChickenQueries, ChickenMutations } from "@/services/queries/chickens";
 
 const statusOptions = [
@@ -92,7 +93,7 @@ export default function ChickenDetailPage() {
         </p>
         <p className="text-sm text-gray-500 mb-4">
           {pt.layStartDate}:{" "}
-          {new Date(chicken.layStartDate).toLocaleDateString("pt-BR")}
+          {formatDateOnly(chicken.layStartDate)}
         </p>
         <DeleteButton
           onClick={() => setConfirmOpen(true)}

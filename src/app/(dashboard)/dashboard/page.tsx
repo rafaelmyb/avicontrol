@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { pt } from "@/shared/i18n/pt";
+import { formatDateOnly } from "@/shared/format-date";
 import { type PeriodPreset } from "@/shared/period";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { FeedRestockCard } from "@/components/feed-restock-card";
@@ -90,7 +91,7 @@ export default function DashboardPage() {
                       {ev.chickenName}
                     </span>
                     <span className="text-gray-600 font-normal">
-                      {new Date(ev.date).toLocaleDateString("pt-BR")}
+                      {formatDateOnly(ev.date)}
                     </span>
                   </li>
                 ))}

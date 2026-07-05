@@ -13,8 +13,7 @@ import { FormPageHeader } from "@/components/form-page-header";
 import { BroodQueries, BroodMutations } from "@/services/queries/brood";
 
 type BroodEditFields = {
-  actualHatchedCount: number | "";
-  status: string;
+  eggCount: number | "";
 };
 
 export default function BroodDetailPage() {
@@ -28,7 +27,7 @@ export default function BroodDetailPage() {
   const deleteBrood = BroodMutations.useDeleteBrood();
 
   const { register, handleSubmit, reset } = useForm<BroodEditFields>({
-    defaultValues: { actualHatchedCount: "", status: "" },
+    defaultValues: { eggCount: "" },
   });
 
   const cycle = brood.data;
@@ -36,19 +35,14 @@ export default function BroodDetailPage() {
   useEffect(() => {
     if (cycle) {
       reset({
-        actualHatchedCount: cycle.actualHatchedCount ?? "",
-        status: cycle.status ?? "",
+        eggCount: cycle.eggCount,
       });
     }
   }, [cycle, reset]);
 
   const onSubmit = (data: BroodEditFields) => {
     updateBrood.mutate({
-      actualHatchedCount:
-        data.actualHatchedCount === ""
-          ? undefined
-          : Number(data.actualHatchedCount),
-      status: data.status || undefined,
+      eggCount: data.eggCount === "" ? undefined : Number(data.eggCount),
     });
   };
 
@@ -107,26 +101,15 @@ export default function BroodDetailPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {pt.actualHatchedCount}
+            {pt.eggCount}
           </label>
           <input
             type="number"
             min={0}
-            {...register("actualHatchedCount", {
+            {...register("eggCount", {
               setValueAs: (v) => (v === "" || v === undefined ? "" : Number(v)),
             })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {pt.status}
-          </label>
-          <input
-            type="text"
-            {...register("status")}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            placeholder="ex: active, hatched, completed"
           />
         </div>
         {updateBrood.error && (

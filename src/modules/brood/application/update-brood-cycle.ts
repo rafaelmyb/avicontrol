@@ -2,6 +2,7 @@ import type { IBroodCycleRepository } from "../domain/repository";
 import type { IChickenRepository } from "@/modules/chicken/domain/repository";
 
 export interface UpdateBroodCycleInput {
+  eggCount?: number;
   actualHatchedCount?: number;
   status?: string;
 }

@@ -1,4 +1,5 @@
 export type UpdateBroodBody = {
+  eggCount?: number;
   actualHatchedCount?: number;
   status?: string;
 };

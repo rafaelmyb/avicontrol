@@ -18,7 +18,7 @@ export interface IBroodCycleRepository {
   findByIdAndUserId(id: string, userId: string): Promise<BroodCycleEntity | null>;
   update(
     id: string,
-    data: Partial<Pick<BroodCycleEntity, "actualHatchedCount" | "status">>
+    data: Partial<Pick<BroodCycleEntity, "eggCount" | "actualHatchedCount" | "status">>
   ): Promise<BroodCycleEntity | null>;
   delete(id: string, userId: string): Promise<boolean>;
 }

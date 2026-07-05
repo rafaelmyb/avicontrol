@@ -11,10 +11,10 @@ describe("expectedHatchDate", () => {
 });
 
 describe("expectedReturnToLayDate", () => {
-  it("returns hatchDate + 14 days by default", () => {
+  it("returns hatchDate + 60 days by default", () => {
     const hatch = new Date("2024-01-22");
     const result = expectedReturnToLayDate(hatch);
-    const expected = new Date("2024-02-05");
+    const expected = new Date("2024-03-22");
     expect(result.toISOString().slice(0, 10)).toBe(expected.toISOString().slice(0, 10));
   });
 

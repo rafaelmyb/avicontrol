@@ -85,11 +85,12 @@ export class PrismaBroodCycleRepository implements IBroodCycleRepository {
 
   async update(
     id: string,
-    data: Partial<Pick<BroodCycleEntity, "actualHatchedCount" | "status">>
+    data: Partial<Pick<BroodCycleEntity, "eggCount" | "actualHatchedCount" | "status">>
   ): Promise<BroodCycleEntity | null> {
     const row = await prisma.broodCycle.update({
       where: { id },
       data: {
+        ...(data.eggCount != null && { eggCount: data.eggCount }),
         ...(data.actualHatchedCount != null && { actualHatchedCount: data.actualHatchedCount }),
         ...(data.status != null && { status: data.status }),
       },

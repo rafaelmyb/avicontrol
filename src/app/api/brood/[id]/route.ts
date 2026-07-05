@@ -8,6 +8,7 @@ import { getBroodCycle } from "@/modules/brood/application/get-brood-cycle";
 import { updateBroodCycle } from "@/modules/brood/application/update-brood-cycle";
 
 const updateBodySchema = z.object({
+  eggCount: z.number().int().min(0).optional(),
   actualHatchedCount: z.number().int().min(0).optional(),
   status: z.string().optional(),
 });

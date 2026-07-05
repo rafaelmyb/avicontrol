@@ -1,26 +1,41 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PrismaFeedInventoryRepository } from "@/modules/feed/infrastructure/prisma-feed-repository";
 import { computeRestockByFeedTypeFromData } from "@/modules/feed/application/restock-date";
 import { countChickensByFeedAgeGroup } from "@/modules/chicken/domain/services/feed-age-group";
-import { getMonthlyProfitBatch } from "@/modules/finance/application/monthly-profit-batch";
-import { monthlyEggProduction } from "@/modules/chicken/domain/services/egg-estimation";
+import { PrismaExpenseRepository } from "@/modules/finance/infrastructure/prisma-expense-repository";
+import { PrismaRevenueRepository } from "@/modules/finance/infrastructure/prisma-revenue-repository";
+import { monthlyProfit } from "@/modules/finance/domain/services/profit";
 import { DEFAULT_AVERAGE_EGGS_PER_MONTH } from "@/shared/constants";
+import { getDateRangeFromPreset, scaledEggProduction } from "@/shared/period";
 
 const ACTIVE_STATUSES = ["chick", "pullet", "laying", "brooding", "recovering"] as const;
 
-export async function GET() {
+const periodSchema = z.enum(["current_month", "last_30_days", "current_year"]);
+
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const userId = session.user.id;
   const now = new Date();
-  const feedRepo = new PrismaFeedInventoryRepository();
 
-  // Wave 1: all independent I/O in one Promise.all
+  // Parse and validate period; default to current_month if absent or invalid.
+  const { searchParams } = new URL(request.url);
+  const rawPeriod = searchParams.get("period") ?? "current_month";
+  const periodResult = periodSchema.safeParse(rawPeriod);
+  const period = periodResult.success ? periodResult.data : "current_month";
+  const { from, to } = getDateRangeFromPreset(period, now);
+
+  const feedRepo = new PrismaFeedInventoryRepository();
+  const expenseRepo = new PrismaExpenseRepository();
+  const revenueRepo = new PrismaRevenueRepository();
+
+  // All independent I/O in one Promise.all
   const [
     totalChickens,
     statusCounts,
@@ -28,7 +43,8 @@ export async function GET() {
     broodCycles,
     activeChickensForFeedAge,
     user,
-    monthlyProfitBatchResult,
+    totalRevenue,
+    totalExpenses,
     feedRestockData,
   ] = await Promise.all([
     prisma.chicken.count({ where: { userId } }),
@@ -61,7 +77,8 @@ export async function GET() {
       where: { id: userId },
       select: { eggPricePerUnit: true },
     }),
-    getMonthlyProfitBatch(userId, now),
+    revenueRepo.sumByUserIdAndDateRange(userId, from, to),
+    expenseRepo.sumByUserIdAndDateRange(userId, from, to),
     feedRepo.findRestockDataByUserId(userId),
   ]);
 
@@ -81,16 +98,19 @@ export async function GET() {
   const feedAgeCounts = countChickensByFeedAgeGroup(activeChickensForFeedAge, now);
   const feedRestockAlerts = computeRestockByFeedTypeFromData(feedRestockData, feedAgeCounts);
 
-  const monthlyResult = monthlyProfitBatchResult.currentMonth;
   const eggPricePerUnit = user?.eggPricePerUnit ?? 0;
-  // Egg estimation uses only female laying chickens; males don't lay eggs.
-  const estimatedMonthlyEggs = monthlyEggProduction(
+
+  // Egg estimation is scaled proportionally to the selected period's duration.
+  // Uses 30-day "standard month" as denominator — see src/shared/period.ts for rationale.
+  const estimatedMonthlyEggs = scaledEggProduction(
     layingFemalesCount,
-    DEFAULT_AVERAGE_EGGS_PER_MONTH
+    DEFAULT_AVERAGE_EGGS_PER_MONTH,
+    from,
+    to
   );
   const estimatedEggRevenue = estimatedMonthlyEggs * eggPricePerUnit;
-  const monthlyRevenueWithEggs = monthlyResult.totalRevenue + estimatedEggRevenue;
-  const monthlyProfit = monthlyRevenueWithEggs - monthlyResult.totalExpenses;
+  const monthlyRevenueWithEggs = totalRevenue + estimatedEggRevenue;
+  const profit = monthlyProfit(monthlyRevenueWithEggs, totalExpenses);
 
   return NextResponse.json({
     totalChickens,
@@ -98,11 +118,11 @@ export async function GET() {
     broodingChickens,
     estimatedMonthlyEggs,
     eggPricePerUnit: user?.eggPricePerUnit ?? null,
-    monthlyExpenses: monthlyResult.totalExpenses,
-    monthlyRevenue: monthlyResult.totalRevenue,
+    monthlyExpenses: totalExpenses,
+    monthlyRevenue: totalRevenue,
     estimatedEggRevenue,
     monthlyRevenueWithEggs,
-    monthlyProfit,
+    monthlyProfit: profit,
     feedRestockAlerts,
     upcomingBroodEvents,
   });

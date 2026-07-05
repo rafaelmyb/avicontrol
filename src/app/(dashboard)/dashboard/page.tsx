@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { pt } from "@/shared/i18n/pt";
+import { type PeriodPreset } from "@/shared/period";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { FeedRestockCard } from "@/components/feed-restock-card";
 import { DashboardQueries } from "@/services/queries/dashboard";
 
 export default function DashboardPage() {
-  const { data, isLoading, error } = DashboardQueries.useLoadDashboard();
+  const [period, setPeriod] = useState<PeriodPreset>("current_month");
+  const { data, isLoading, error } = DashboardQueries.useLoadDashboard(period);
 
   if (isLoading) {
     return (
@@ -25,21 +28,39 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">
-        {pt.dashboard}
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900">{pt.dashboard}</h1>
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="period-select"
+            className="text-sm text-gray-500 whitespace-nowrap"
+          >
+            {pt.period}:
+          </label>
+          <select
+            id="period-select"
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as PeriodPreset)}
+            className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+          >
+            <option value="current_month">{pt.currentMonth}</option>
+            <option value="last_30_days">{pt.last30Days}</option>
+            <option value="current_year">{pt.currentYear}</option>
+          </select>
+        </div>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card
-          title={pt.monthlyExpenses}
+          title={pt.periodExpenses}
           value={`R$ ${data.monthlyExpenses.toFixed(2)}`}
         />
         <Card
-          title={pt.monthlyRevenue}
+          title={pt.periodRevenue}
           value={`R$ ${data.monthlyRevenueWithEggs.toFixed(2)}`}
         />
         <Card
-          title={pt.monthlyProfit}
+          title={pt.periodProfit}
           value={`R$ ${data.monthlyProfit.toFixed(2)}`}
         />
       </div>
@@ -49,8 +70,8 @@ export default function DashboardPage() {
         <Card title={pt.layingChickens} value={data.layingChickens} />
         <Card title={pt.broodingChickens} value={data.broodingChickens} />
         <Card
-          title={pt.estimatedMonthlyEggs}
-          value={data.estimatedMonthlyEggs ?? pt.noData}
+          title={pt.periodEstimatedEggs}
+          value={data.estimatedMonthlyEggs != null ? Math.round(data.estimatedMonthlyEggs) : pt.noData}
         />
       </div>
 

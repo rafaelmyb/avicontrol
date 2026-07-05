@@ -129,6 +129,14 @@ export const pt = {
   // Dashboard
   estimatedMonthlyEggs: "Ovos estimados (mês)",
   noData: "Sem dados",
+  period: "Período",
+  currentMonth: "Mês atual",
+  last30Days: "Últimos 30 dias",
+  currentYear: "Ano atual",
+  periodExpenses: "Despesas (período)",
+  periodRevenue: "Receita (período)",
+  periodProfit: "Lucro (período)",
+  periodEstimatedEggs: "Ovos estimados (período)",
 
   // Pagination
   itemsPerPage: "Itens por página",

@@ -1,3 +1,5 @@
+import type { PeriodPreset } from "@/shared/period";
+
 export type FeedRestockAlertItem = {
   feedType: string;
   label: string;
@@ -19,8 +21,8 @@ export type DashboardData = {
   upcomingBroodEvents: { id: string; chickenName: string; date: string }[];
 };
 
-export const loadDashboard = async (): Promise<DashboardData> => {
-  const res = await fetch("/api/dashboard");
+export const loadDashboard = async (period: PeriodPreset = "current_month"): Promise<DashboardData> => {
+  const res = await fetch(`/api/dashboard?period=${period}`);
   if (!res.ok) throw new Error("Failed");
   return res.json();
 };

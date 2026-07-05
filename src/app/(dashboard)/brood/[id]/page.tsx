@@ -10,7 +10,20 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import { DeleteButton } from "@/components/action-icon-button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FormPageHeader } from "@/components/form-page-header";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { BroodQueries, BroodMutations } from "@/services/queries/brood";
+import {
+  buildFinalizePayload,
+  BROOD_HATCHED_STATUS,
+} from "@/modules/brood/application/finalize-brood-cycle";
 
 type BroodEditFields = {
   eggCount: number | "";
@@ -22,6 +35,10 @@ export default function BroodDetailPage() {
   const id = params.id as string;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [finalizeOpen, setFinalizeOpen] = useState(false);
+  const [hatchedCountInput, setHatchedCountInput] = useState("");
+  const [finalizeError, setFinalizeError] = useState<string | null>(null);
+
   const brood = BroodQueries.useLoadBrood(id);
   const updateBrood = BroodMutations.useUpdateBrood(id);
   const deleteBrood = BroodMutations.useDeleteBrood();
@@ -46,6 +63,37 @@ export default function BroodDetailPage() {
     });
   };
 
+  const handleOpenFinalize = () => {
+    updateBrood.reset();
+    setHatchedCountInput("");
+    setFinalizeError(null);
+    setFinalizeOpen(true);
+  };
+
+  const handleFinalize = () => {
+    const parsed = parseInt(hatchedCountInput, 10);
+    const result = buildFinalizePayload(
+      { actualHatchedCount: isNaN(parsed) ? -1 : parsed },
+      cycle?.eggCount
+    );
+    if (!result.ok) {
+      const msg =
+        result.errorKey === "hatchedCountExceedsEggs"
+          ? pt.hatchedCountExceedsEggs(cycle!.eggCount)
+          : pt.hatchedCountInvalid;
+      setFinalizeError(msg);
+      return;
+    }
+    setFinalizeError(null);
+    updateBrood.mutate(
+      { actualHatchedCount: result.actualHatchedCount, status: result.status },
+      {
+        onSuccess: () => setFinalizeOpen(false),
+        onError: (err) => setFinalizeError(err.message),
+      }
+    );
+  };
+
   if (brood.isLoading || !cycle) {
     return (
       <div className="p-6">
@@ -67,6 +115,8 @@ export default function BroodDetailPage() {
     );
   }
 
+  const isHatched = cycle.status === BROOD_HATCHED_STATUS;
+
   return (
     <div className="p-6 max-w-lg mx-auto">
       <FormPageHeader
@@ -76,6 +126,10 @@ export default function BroodDetailPage() {
       />
 
       <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-2 text-sm">
+        <p>
+          <span className="font-medium text-gray-700">{pt.status}:</span>{" "}
+          {isHatched ? pt.broodHatched : pt.broodActive}
+        </p>
         <p>
           <span className="font-medium text-gray-700">{pt.startDate}:</span>{" "}
           {formatDateOnly(cycle.startDate)}
@@ -96,6 +150,14 @@ export default function BroodDetailPage() {
           </span>{" "}
           {formatDateOnly(cycle.expectedReturnToLayDate)}
         </p>
+        {isHatched && (
+          <p>
+            <span className="font-medium text-gray-700">
+              {pt.actualHatchedCount}:
+            </span>{" "}
+            {cycle.actualHatchedCount ?? "—"}
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -112,17 +174,27 @@ export default function BroodDetailPage() {
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
-        {updateBrood.error && (
+        {updateBrood.error && !finalizeOpen && (
           <p className="text-sm text-red-600">{updateBrood.error.message}</p>
         )}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             type="submit"
             disabled={updateBrood.isPending}
             className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 disabled:opacity-50"
           >
-            {updateBrood.isPending ? pt.loading : pt.save}
+            {updateBrood.isPending && !finalizeOpen ? pt.loading : pt.save}
           </button>
+          {!isHatched && (
+            <button
+              type="button"
+              onClick={handleOpenFinalize}
+              disabled={updateBrood.isPending}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {pt.finalizeBrood}
+            </button>
+          )}
           <DeleteButton
             onClick={() => setConfirmOpen(true)}
             disabled={deleteBrood.isPending}
@@ -143,6 +215,65 @@ export default function BroodDetailPage() {
           />
         </div>
       </form>
+
+      {/* Finalize dialog */}
+      <Dialog
+        open={finalizeOpen}
+        onOpenChange={(o) => !updateBrood.isPending && setFinalizeOpen(o)}
+      >
+        <DialogContent
+          className="max-w-[425px]"
+          onPointerDownOutside={(e) =>
+            updateBrood.isPending && e.preventDefault()
+          }
+          onEscapeKeyDown={(e) =>
+            updateBrood.isPending && e.preventDefault()
+          }
+        >
+          <DialogHeader>
+            <DialogTitle>{pt.finalizeBrood}</DialogTitle>
+            <DialogDescription>{pt.hatchedCountPrompt}</DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {pt.hatchedCountLabel}
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={cycle.eggCount}
+              value={hatchedCountInput}
+              onChange={(e) => {
+                setHatchedCountInput(e.target.value);
+                setFinalizeError(null);
+              }}
+              disabled={updateBrood.isPending}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50"
+              autoFocus
+            />
+            {finalizeError && (
+              <p className="text-sm text-red-600 mt-1">{finalizeError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setFinalizeOpen(false)}
+              disabled={updateBrood.isPending}
+            >
+              {pt.cancel}
+            </Button>
+            <Button
+              type="button"
+              onClick={handleFinalize}
+              disabled={updateBrood.isPending}
+            >
+              {updateBrood.isPending ? pt.loading : pt.confirm}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

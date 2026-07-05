@@ -85,6 +85,13 @@ export const pt = {
   expectedReturnToLayDate: "Previsão retorno à postura",
   actualHatchedCount: "Eclodidos",
   upcomingBroodEvents: "Próximos eventos de choco",
+  finalizeBrood: "Finalizar choco",
+  hatchedCountPrompt: "Informe quantos ovos eclodiram para encerrar o ciclo",
+  hatchedCountLabel: "Quantidade eclodida",
+  hatchedCountInvalid: "Quantidade deve ser um número inteiro maior ou igual a zero",
+  hatchedCountExceedsEggs: (max: number) => `Não pode superar ${max} (total de ovos no ciclo)`,
+  broodHatched: "Eclodido",
+  broodActive: "Ativo",
 
   // Feed
   feedInventory: "Estoque de ração",

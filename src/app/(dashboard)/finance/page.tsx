@@ -97,6 +97,25 @@ const EXPENSE_ORDER_OPTIONS: { value: "date" | "amount"; label: string }[] = [
 ];
 const DEFAULT_FINANCE_LIMIT = 10;
 
+const MONTHS_PT: readonly string[] = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
+
+function formatMonthLabel(year: number, month: number): string {
+  return `${MONTHS_PT[month - 1]} ${year}`;
+}
+
 function ExpenseSection({ start, end }: { start: string; end: string }) {
   const [orderBy, setOrderBy] = useState<"date" | "amount">("date");
   const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("desc");
@@ -114,6 +133,7 @@ function ExpenseSection({ start, end }: { start: string; end: string }) {
     orderBy,
     orderDirection,
   });
+  const summary = ExpenseQueries.useLoadExpensesSummary();
   const deleteExpense = ExpenseMutations.useDeleteExpense();
 
   const expenses = expenseData.data?.list ?? [];
@@ -121,10 +141,57 @@ function ExpenseSection({ start, end }: { start: string; end: string }) {
 
   return (
     <div>
-      <Card
-        title={pt.monthlyExpenses}
-        value={`R$ ${expenses.reduce((acc, e) => acc + e.amount, 0).toFixed(2)}`}
-      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card
+          title={pt.monthlyExpenses}
+          value={`R$ ${expenses.reduce((acc, e) => acc + e.amount, 0).toFixed(2)}`}
+        />
+        <Card
+          title={`${pt.totalExpenses} — ${pt.allTime}`}
+          value={
+            summary.isLoading
+              ? pt.loading
+              : `R$ ${(summary.data?.totalAllTime ?? 0).toFixed(2)}`
+          }
+        />
+      </div>
+
+      {summary.data && summary.data.byMonth.length > 0 && (
+        <div className="mt-6 bg-white border border-gray-200 rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">
+            {pt.expensesHistory}
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead>
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    {pt.period}
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                    {pt.monthlyTotal}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {[...summary.data.byMonth].reverse().map((row) => (
+                  <tr
+                    key={`${row.year}-${row.month}`}
+                    className="hover:bg-gray-50"
+                  >
+                    <td className="px-3 py-2 text-sm text-gray-700">
+                      {formatMonthLabel(row.year, row.month)}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-right text-gray-900 font-medium">
+                      R$ {row.total.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3 mt-6">
         <div className="flex gap-2">
           <select

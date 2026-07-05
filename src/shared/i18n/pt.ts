@@ -125,6 +125,10 @@ export const pt = {
   loss: "Prejuízo",
   estimatedEggRevenue: "Receita estimada (ovos)",
   totalRevenueWithEggs: "Total receita (registrada + ovos)",
+  totalExpenses: "Total de gastos",
+  allTime: "Todo o período",
+  expensesHistory: "Histórico de gastos",
+  monthlyTotal: "Total do mês",
 
   // Dashboard
   estimatedMonthlyEggs: "Ovos estimados (mês)",

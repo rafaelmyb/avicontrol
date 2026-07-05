@@ -7,6 +7,12 @@ import type {
 
 export type FinanceOrderBy = "date" | "amount";
 
+export interface MonthlyExpensesRow {
+  year: number;
+  month: number;
+  total: number;
+}
+
 export interface FinanceListOptions {
   orderBy?: FinanceOrderBy;
   orderDirection?: "asc" | "desc";
@@ -31,6 +37,12 @@ export interface IExpenseRepository {
     start: Date,
     end: Date
   ): Promise<number>;
+  sumAllByUserId(userId: string): Promise<number>;
+  sumByUserIdGroupedByMonth(
+    userId: string,
+    referenceDate: Date,
+    months: number
+  ): Promise<MonthlyExpensesRow[]>;
   update(
     id: string,
     userId: string,

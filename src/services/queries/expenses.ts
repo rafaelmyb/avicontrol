@@ -7,6 +7,7 @@ import {
 } from "@/services/requests/expenses/load-expenses";
 import { loadExpense } from "@/services/requests/expenses/load-expense";
 import { updateExpense as updateExpenseRequest } from "@/services/requests/expenses/update-expense";
+import { loadExpensesSummary } from "@/services/requests/expenses/load-expenses-summary";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
@@ -28,6 +29,13 @@ export const useLoadExpense = (id: string | null) => {
   });
 };
 
+export const useLoadExpensesSummary = () => {
+  return useQuery({
+    queryKey: ["expenses-summary"],
+    queryFn: loadExpensesSummary,
+  });
+};
+
 const useCreateExpense = () => {
   const router = useRouter();
 
@@ -35,6 +43,7 @@ const useCreateExpense = () => {
     mutationFn: createExpense,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses-summary"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       router.push("/finance");
     },
@@ -58,6 +67,7 @@ const useDeleteExpense = () => {
     mutationFn: deleteExpenseRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses-summary"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
@@ -66,6 +76,7 @@ const useDeleteExpense = () => {
 export const ExpenseQueries = {
   useLoadExpenses,
   useLoadExpense,
+  useLoadExpensesSummary,
 };
 
 export const ExpenseMutations = {

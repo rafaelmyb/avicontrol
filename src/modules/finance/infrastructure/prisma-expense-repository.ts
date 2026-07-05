@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { ExpenseEntity, CreateExpenseInput } from "../domain/entities";
-import type { IExpenseRepository, FinanceListOptions } from "../domain/repository";
+import type { IExpenseRepository, FinanceListOptions, MonthlyExpensesRow } from "../domain/repository";
 
 function toEntity(row: {
   id: string;
@@ -102,6 +102,44 @@ export class PrismaExpenseRepository implements IExpenseRepository {
       _sum: { amount: true },
     });
     return result._sum.amount ?? 0;
+  }
+
+  async sumAllByUserId(userId: string): Promise<number> {
+    const result = await prisma.expense.aggregate({
+      where: { userId },
+      _sum: { amount: true },
+    });
+    return result._sum.amount ?? 0;
+  }
+
+  async sumByUserIdGroupedByMonth(
+    userId: string,
+    referenceDate: Date,
+    months: number
+  ): Promise<MonthlyExpensesRow[]> {
+    const startOfRange = new Date(
+      Date.UTC(
+        referenceDate.getUTCFullYear(),
+        referenceDate.getUTCMonth() - (months - 1),
+        1
+      )
+    );
+    type RawRow = { year: unknown; month: unknown; total: unknown };
+    const rows = await prisma.$queryRaw<RawRow[]>`
+      SELECT
+        EXTRACT(YEAR FROM "date")::int  AS year,
+        EXTRACT(MONTH FROM "date")::int AS month,
+        COALESCE(SUM(amount), 0)::float8 AS total
+      FROM "Expense"
+      WHERE "userId" = ${userId} AND "date" >= ${startOfRange}
+      GROUP BY EXTRACT(YEAR FROM "date"), EXTRACT(MONTH FROM "date")
+      ORDER BY EXTRACT(YEAR FROM "date") ASC, EXTRACT(MONTH FROM "date") ASC
+    `;
+    return rows.map((r) => ({
+      year: Number(r.year),
+      month: Number(r.month),
+      total: Number(r.total),
+    }));
   }
 
   async update(
